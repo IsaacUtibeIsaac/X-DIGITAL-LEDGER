@@ -1,11 +1,12 @@
 const KEY = 'dl_products'
 
 function normalise(p) {
-  if (p.units) return p
+  if (p.units) return { unitCost: 0, ...p }
   return {
     ...p,
     brand: p.brand || '',
     baseUnit: 'piece',
+    unitCost: 0,
     units: [{ name: 'piece', size: 1, price: p.price || 0 }]
   }
 }
@@ -44,12 +45,17 @@ export function addProduct(f) {
     baseUnit: units[0].name,
     units,
     quantity: (Number(f.quantity) || 0) * stockUnit.size,
+    unitCost: (Number(f.cost) || 0) / stockUnit.size,
     expiry: f.expiry || '',
     createdAt: new Date().toISOString()
   }
   const next = [item, ...loadProducts()]
   save(next)
   return next
+}
+
+export function inventoryValue(list) {
+  return list.reduce((sum, p) => sum + p.quantity * p.unitCost, 0)
 }
 
 export function describeStock(p) {
