@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import {
-  loadProducts, addProduct, searchProducts, describeStock, inventoryValue
+  loadProducts, addProduct, searchProducts, describeStock, inventoryValue,
+  updateProduct, adjustQuantity, loadAdjustments
 } from '../features/inventory/productStore.js'
+import ItemEditor from '../features/inventory/ItemEditor.jsx'
 
 const empty = {
   name: '', brand: '', barcode: '',
@@ -14,6 +16,22 @@ export default function Inventory() {
   const [items, setItems] = useState(loadProducts())
   const [form, setForm] = useState(empty)
   const [search, setSearch] = useState('')
+  const [editId, setEditId] = useState(null)
+
+  const editItem = items.find(p => p.id === editId)
+  if (editItem) {
+    return (
+      <div className="screen">
+        <ItemEditor
+          item={editItem}
+          history={loadAdjustments().filter(h => h.itemId === editId).slice(0, 5)}
+          onSave={changes => { setItems(updateProduct(editId, changes)); setEditId(null) }}
+          onAdjust={data => setItems(adjustQuantity(editId, data))}
+          onClose={() => setEditId(null)}
+        />
+      </div>
+    )
+  }
 
   function change(e) {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -51,8 +69,9 @@ export default function Inventory() {
       <h3>Items ({items.length})</h3>
       <p>Total inventory value: ₦{Math.round(inventoryValue(items)).toLocaleString()}</p>
       <input placeholder="Search name, brand or barcode" value={search} onChange={e => setSearch(e.target.value)} />
+      <p>Tap an item to edit it.</p>
       {shown.map(p => (
-        <div key={p.id} className="row">
+        <div key={p.id} className="row" onClick={() => setEditId(p.id)}>
           <div>
             <b>{p.name}</b>{p.brand ? ` · ${p.brand}` : ''}
             <div>{p.units.map(u => `${u.name} ₦${u.price.toLocaleString()}`).join(' · ')}</div>
