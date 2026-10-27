@@ -75,3 +75,58 @@ export function searchProducts(list, text) {
     p.barcode.includes(t)
   )
 }
+const ADJ_KEY = 'dl_adjustments'
+
+export function loadAdjustments() {
+  try {
+    return JSON.parse(localStorage.getItem(ADJ_KEY)) || []
+  } catch {
+    return []
+  }
+}
+
+export function updateProduct(id, c) {
+  const next = loadProducts().map(p => {
+    if (p.id !== id) return p
+    return {
+      ...p,
+      name: c.name.trim() || p.name,
+      brand: c.brand.trim(),
+      barcode: c.barcode.trim(),
+      expiry: c.expiry || '',
+      unitCost: Number(c.unitCost) || 0,
+      units: p.units.map((u, i) => ({ ...u, price: Number(c.prices[i]) || 0 }))
+    }
+  })
+  save(next)
+  return next
+}
+
+export function adjustQuantity(id, a) {
+  const list = loadProducts()
+  const p = list.find(x => x.id === id)
+  if (!p) return list
+  const unit = p.units.find(u => u.name === a.unitName) || p.units[0]
+  const requested = (Number(a.change) || 0) * unit.size
+  if (!requested) return list
+  const newQty = Math.max(0, p.quantity + requested)
+  const actual = newQty - p.quantity
+  let unitCost = p.unitCost
+  if (a.reason === 'Purchase' && actual > 0 && Number(a.cost) > 0) {
+    const addCost = Number(a.cost) / unit.size
+    unitCost = (p.quantity * p.unitCost + actual * addCost) / newQty
+  }
+  const next = list.map(x => (x.id === id ? { ...x, quantity: newQty, unitCost } : x))
+  save(next)
+  try {
+    localStorage.setItem(ADJ_KEY, JSON.stringify([
+      {
+        id: Date.now().toString(), itemId: id, itemName: p.name,
+        change: actual, unit: p.baseUnit, reason: a.reason,
+        note: a.note || '', date: new Date().toISOString()
+      },
+      ...loadAdjustments()
+    ]))
+  } catch {}
+  return next
+}
