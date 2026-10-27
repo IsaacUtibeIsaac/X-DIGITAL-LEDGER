@@ -31,7 +31,7 @@ export default function App() {
     content = <div className="screen"><h2>Setup needed</h2><p>The Supabase keys are missing in Vercel.</p></div>
   } else if (loading) {
     content = <div className="screen">Loading...</div>
-  } else if (!session) {
+  } else if (!session && !TEST_MODE) {
     content = <Login />
   } else {
     const Screen = screens[tab]
