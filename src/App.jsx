@@ -5,14 +5,14 @@ import PoweredBy from './components/PoweredBy.jsx'
 import Login from './screens/Login.jsx'
 import Home from './screens/Home.jsx'
 import Sell from './screens/Sell.jsx'
-import Stock from './screens/Stock.jsx'
+import Inventory from './screens/Inventory.jsx'
 import Reports from './screens/Reports.jsx'
 
-const screens = { Home, Sell, Stock, Reports }
+const screens = { Dashboard: Home, Sales: Sell, Inventory, Reports }
 const TEST_MODE = true
 
 export default function App() {
-  const [tab, setTab] = useState('Home')
+  const [tab, setTab] = useState('Dashboard')
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
