@@ -9,6 +9,7 @@ import Stock from './screens/Stock.jsx'
 import Reports from './screens/Reports.jsx'
 
 const screens = { Home, Sell, Stock, Reports }
+const TEST_MODE = true
 
 export default function App() {
   const [tab, setTab] = useState('Home')
