@@ -6,3 +6,4 @@ nav button.active{color:#0b2a5b;font-weight:700;border-bottom:3px solid #0b2a5b}
 .powered{position:fixed;left:0;right:0;bottom:0;margin:0;padding:5px 0 calc(5px + env(safe-area-inset-bottom));text-align:center;font-size:12px;color:#6b7280;background:#fff}
 input,select{display:block;width:100%;box-sizing:border-box;padding:10px;margin:6px 0;font-size:16px}
 .row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e5e7eb}
+label{display:block;font-size:13px;color:#6b7280;margin-top:8px}
