@@ -130,3 +130,12 @@ export function adjustQuantity(id, a) {
   } catch {}
   return next
 }
+export function changeQuantities(changes) {
+  const list = loadProducts().map(p => {
+    const c = changes.find(x => x.id === p.id)
+    if (!c) return p
+    return { ...p, quantity: Math.max(0, p.quantity + c.baseQty) }
+  })
+  save(list)
+  return list
+}
