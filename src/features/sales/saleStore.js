@@ -1,4 +1,5 @@
 import { loadProducts, changeQuantities } from '../inventory/productStore.js'
+import { RECEIPT_FEE } from '../settings/settingsStore.js'
 
 const SALES = 'dl_sales'
 const VOIDS = 'dl_voids'
@@ -42,12 +43,15 @@ export function recordSale(lines, receiptOn, who) {
   const problem = checkStock(lines)
   if (problem) return { error: problem }
   const sales = loadSales()
+  const receiptIssued = receiptOn && lines.some(l => l.receipt)
   const sale = {
     id: Date.now().toString(),
     receiptNo: sales.length + 1,
     date: new Date().toISOString(),
     cashier: who,
     receiptOn,
+    receiptIssued,
+    fee: receiptIssued ? RECEIPT_FEE : 0,
     lines: lines.map(l => ({ ...l })),
     total: lines.reduce((s, l) => s + l.qty * l.price, 0)
   }
