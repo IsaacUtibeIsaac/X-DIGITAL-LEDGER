@@ -7,6 +7,8 @@ import Home from './screens/Home.jsx'
 import Sell from './screens/Sell.jsx'
 import Inventory from './screens/Inventory.jsx'
 import Reports from './screens/Reports.jsx'
+import Customers from './screens/Customers.jsx'
+import Requests from './screens/Requests.jsx'
 
 const screens = { Dashboard: Home, Sales: Sell, Inventory, Reports }
 const TEST_MODE = true
