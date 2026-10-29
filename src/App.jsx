@@ -6,11 +6,12 @@ import Login from './screens/Login.jsx'
 import Home from './screens/Home.jsx'
 import Sell from './screens/Sell.jsx'
 import Inventory from './screens/Inventory.jsx'
-import Reports from './screens/Reports.jsx'
 import Customers from './screens/Customers.jsx'
 import Requests from './screens/Requests.jsx'
+import Reports from './screens/Reports.jsx'
 
 const screens = { Dashboard: Home, Sales: Sell, Inventory, Customers, Requests, Reports }
+const TEST_MODE = true
 
 export default function App() {
   const [tab, setTab] = useState('Dashboard')
@@ -28,12 +29,12 @@ export default function App() {
   }, [])
 
   let content
-  if (!supabaseReady) {
-    content = <div className="screen"><h2>Setup needed</h2><p>The Supabase keys are missing in Vercel.</p></div>
-  } else if (loading) {
+  if (loading && !TEST_MODE) {
     content = <div className="screen">Loading...</div>
   } else if (!session && !TEST_MODE) {
-    content = <Login />
+    content = supabaseReady
+      ? <Login />
+      : <div className="screen"><h2>Setup needed</h2><p>The Supabase keys are missing in Vercel.</p></div>
   } else {
     const Screen = screens[tab]
     content = (
