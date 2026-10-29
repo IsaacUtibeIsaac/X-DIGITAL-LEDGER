@@ -10,8 +10,7 @@ import Reports from './screens/Reports.jsx'
 import Customers from './screens/Customers.jsx'
 import Requests from './screens/Requests.jsx'
 
-const screens = { Dashboard: Home, Sales: Sell, Inventory, Reports }
-const TEST_MODE = true
+const screens = { Dashboard: Home, Sales: Sell, Inventory, Customers, Requests, Reports }
 
 export default function App() {
   const [tab, setTab] = useState('Dashboard')
