@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { loadProducts, searchProducts, describeStock } from '../features/inventory/productStore.js'
 import { recordSale, voidSale, loadSales, loadVoids, checkStock } from '../features/sales/saleStore.js'
 import Receipt from '../features/sales/Receipt.jsx'
+import { wantsReceipt } from '../features/settings/settingsStore.js'
 import { getRole } from '../lib/role.js'
 
 export default function Sell() {
@@ -24,12 +25,9 @@ export default function Sell() {
     )
   }
 
-  if (lastSale) {
-    return (
-      <div className="screen">
-        {lastSale.receiptOn
-          ? <Receipt sale={lastSale} />
-          : <p>Sale #{lastSale.receiptNo} recorded. Total ₦{lastSale.total.toLocaleString()} (no receipt).</p>}
+{lastSale.receiptIssued
+  ? <Receipt sale={lastSale} />
+  : <p>Sale #{lastSale.receiptNo} recorded. Total ₦{lastSale.total.toLocaleString()}. {lastSale.receiptOn ? 'No receipt: items are below the receipt minimum.' : 'Receipt was turned off.'}</p>}
         <button onClick={() => setLastSale(null)}>New sale</button>
       </div>
     )
@@ -44,7 +42,7 @@ export default function Sell() {
       ? lines.map((l, i) => (i === at ? { ...l, qty: l.qty + 1 } : l))
       : [...lines, {
           itemId: p.id, name: p.name, brand: p.brand,
-          unitName: unit.name, size: unit.size, price: unit.price, qty: 1
+          unitName: unit.name, size: unit.size, price: unit.price, qty: 1, receipt: wantsReceipt(p, unit)
         }]
     const problem = checkStock(next)
     if (problem) { setMessage(problem); return }
