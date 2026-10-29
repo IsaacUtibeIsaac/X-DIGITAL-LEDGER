@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { ROLES, getRole, setRole } from '../lib/role.js'
+import ReceiptSettings from '../features/settings/ReceiptSettings.jsx'
 
 export default function Home() {
   const [role, setRoleState] = useState(getRole())
@@ -19,6 +20,7 @@ export default function Home() {
           {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
       </label>
+      {role === 'Owner' && <ReceiptSettings />}
       <button onClick={() => supabase && supabase.auth.signOut()}>Sign out</button>
     </div>
   )
