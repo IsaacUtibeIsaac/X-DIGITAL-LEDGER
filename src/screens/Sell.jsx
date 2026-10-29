@@ -25,9 +25,19 @@ export default function Sell() {
     )
   }
 
-{lastSale.receiptIssued
-  ? <Receipt sale={lastSale} />
-  : <p>Sale #{lastSale.receiptNo} recorded. Total ₦{lastSale.total.toLocaleString()}. {lastSale.receiptOn ? 'No receipt: items are below the receipt minimum.' : 'Receipt was turned off.'}</p>}
+  if (lastSale) {
+    return (
+      <div className="screen">
+        {lastSale.receiptIssued ? (
+          <Receipt sale={lastSale} />
+        ) : (
+          <p>
+            Sale #{lastSale.receiptNo} recorded. Total ₦{lastSale.total.toLocaleString()}.{' '}
+            {lastSale.receiptOn
+              ? 'No receipt: items are below the receipt minimum.'
+              : 'Receipt was turned off.'}
+          </p>
+        )}
         <button onClick={() => setLastSale(null)}>New sale</button>
       </div>
     )
@@ -38,14 +48,27 @@ export default function Sell() {
 
   function addLine(p, unit) {
     const at = lines.findIndex(l => l.itemId === p.id && l.unitName === unit.name)
-    const next = at >= 0
-      ? lines.map((l, i) => (i === at ? { ...l, qty: l.qty + 1 } : l))
-      : [...lines, {
-          itemId: p.id, name: p.name, brand: p.brand,
-          unitName: unit.name, size: unit.size, price: unit.price, qty: 1, receipt: wantsReceipt(p, unit)
-        }]
+    const next =
+      at >= 0
+        ? lines.map((l, i) => (i === at ? { ...l, qty: l.qty + 1 } : l))
+        : [
+            ...lines,
+            {
+              itemId: p.id,
+              name: p.name,
+              brand: p.brand,
+              unitName: unit.name,
+              size: unit.size,
+              price: unit.price,
+              qty: 1,
+              receipt: wantsReceipt(p, unit)
+            }
+          ]
     const problem = checkStock(next)
-    if (problem) { setMessage(problem); return }
+    if (problem) {
+      setMessage(problem)
+      return
+    }
     setMessage('')
     setLines(next)
     setText('')
@@ -56,7 +79,10 @@ export default function Sell() {
       .map((l, j) => (j === i ? { ...l, qty: l.qty + delta } : l))
       .filter(l => l.qty > 0)
     const problem = checkStock(next)
-    if (problem) { setMessage(problem); return }
+    if (problem) {
+      setMessage(problem)
+      return
+    }
     setMessage('')
     setLines(next)
   }
@@ -64,7 +90,10 @@ export default function Sell() {
   function complete() {
     if (!lines.length) return
     const result = recordSale(lines, receiptOn, 'Cashier')
-    if (result.error) { setMessage(result.error); return }
+    if (result.error) {
+      setMessage(result.error)
+      return
+    }
     setItems(loadProducts())
     setSales(loadSales())
     setLines([])
@@ -83,10 +112,15 @@ export default function Sell() {
   return (
     <div className="screen">
       <h2>Sales</h2>
-      <input placeholder="Type a product name, brand or barcode" value={text} onChange={e => setText(e.target.value)} />
+      <input
+        placeholder="Type a product name, brand or barcode"
+        value={text}
+        onChange={e => setText(e.target.value)}
+      />
       {suggestions.map(p => (
         <div key={p.id} className="sug">
-          <b>{p.name}</b>{p.brand ? ` · ${p.brand}` : ''} (on hand: {describeStock(p)})
+          <b>{p.name}</b>
+          {p.brand ? ` · ${p.brand}` : ''} (on hand: {describeStock(p)})
           <div>
             {p.units.map(u => (
               <button key={u.name} onClick={() => addLine(p, u)}>
@@ -104,8 +138,7 @@ export default function Sell() {
         <div key={i} className="row">
           <span>{l.name} · {l.unitName} ₦{l.price.toLocaleString()}</span>
           <span>
-            <button onClick={() => changeQty(i, -1)}>−</button>
-            {' '}{l.qty}{' '}
+            <button onClick={() => changeQty(i, -1)}>−</button> {l.qty}{' '}
             <button onClick={() => changeQty(i, 1)}>+</button>
           </span>
         </div>
