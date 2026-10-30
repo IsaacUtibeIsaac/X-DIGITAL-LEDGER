@@ -1,32 +1,20 @@
 const KEY = 'dl_settings'
-const MODES = 'dl_receipt_modes'
 
 export const RECEIPT_FEE = 50
 
-function read(key, fallback) {
+export function loadSettings() {
   try {
-    return JSON.parse(localStorage.getItem(key)) || fallback
+    return { minReceiptPrice: 0, ...(JSON.parse(localStorage.getItem(KEY)) || {}) }
   } catch {
-    return fallback
+    return { minReceiptPrice: 0 }
   }
 }
 
-function write(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
+export function saveSettings(s) {
+  try { localStorage.setItem(KEY, JSON.stringify(s)) } catch {}
 }
 
-export function loadSettings() {
-  return { minReceiptPrice: 0, ...read(KEY, {}) }
-}
-export function saveSettings(s) { write(KEY, s) }
-export function loadModes() { return read(MODES, {}) }
-export function saveMode(itemId, mode) {
-  write(MODES, { ...loadModes(), [itemId]: mode })
-}
-
+// A receipt is issued only when the unit price reaches the owner's minimum
 export function wantsReceipt(item, unit) {
-  const mode = loadModes()[item.id] || 'auto'
-  if (mode === 'always') return true
-  if (mode === 'never') return false
   return unit.price >= loadSettings().minReceiptPrice
 }
