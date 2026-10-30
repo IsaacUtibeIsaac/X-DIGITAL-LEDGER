@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, supabaseReady } from './lib/supabase.js'
+import { ROLES, getRole, setRole } from './lib/role.js'
 import BottomNav from './components/BottomNav.jsx'
 import PoweredBy from './components/PoweredBy.jsx'
 import Login from './screens/Login.jsx'
@@ -9,12 +10,31 @@ import Inventory from './screens/Inventory.jsx'
 import Customers from './screens/Customers.jsx'
 import Requests from './screens/Requests.jsx'
 import Reports from './screens/Reports.jsx'
+import Settings from './screens/Settings.jsx'
 
-const screens = { Dashboard: Home, Sales: Sell, Inventory, Customers, Requests, Reports }
+const screens = {
+  Dashboard: Home,
+  Sales: Sell,
+  Inventory,
+  Customers,
+  Requests,
+  Reports,
+  Settings
+}
+
+// Which tabs each role can see
+const tabsByRole = {
+  Owner: ['Dashboard', 'Inventory', 'Customers', 'Requests', 'Reports'],
+  Manager: ['Inventory', 'Requests', 'Settings'],
+  Cashier: ['Sales', 'Customers', 'Requests']
+}
+
 const TEST_MODE = true
 
 export default function App() {
-  const [tab, setTab] = useState('Dashboard')
+  const startRole = tabsByRole[getRole()] ? getRole() : 'Manager'
+  const [role, setRoleState] = useState(startRole)
+  const [tab, setTab] = useState(tabsByRole[startRole][0])
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -28,6 +48,13 @@ export default function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
+  function changeRole(e) {
+    const r = e.target.value
+    setRole(r)
+    setRoleState(r)
+    setTab(tabsByRole[r][0])
+  }
+
   let content
   if (loading && !TEST_MODE) {
     content = <div className="screen">Loading...</div>
@@ -36,11 +63,19 @@ export default function App() {
       ? <Login />
       : <div className="screen"><h2>Setup needed</h2><p>The Supabase keys are missing in Vercel.</p></div>
   } else {
-    const Screen = screens[tab]
+    const names = tabsByRole[role]
+    const current = names.includes(tab) ? tab : names[0]
+    const Screen = screens[current]
     content = (
       <>
-        <Screen />
-        <BottomNav tab={tab} setTab={setTab} names={Object.keys(screens)} />
+        <div className="testbar">
+          Testing as
+          <select value={role} onChange={changeRole}>
+            {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </div>
+        <Screen key={role + current} />
+        <BottomNav tab={current} setTab={setTab} names={names} />
       </>
     )
   }
