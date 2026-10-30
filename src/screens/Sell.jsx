@@ -2,8 +2,15 @@ import { useState } from 'react'
 import { loadProducts, searchProducts, describeStock } from '../features/inventory/productStore.js'
 import { recordSale, voidSale, loadSales, loadVoids, checkStock } from '../features/sales/saleStore.js'
 import Receipt from '../features/sales/Receipt.jsx'
+import BarcodeScanner from '../features/scan/BarcodeScanner.jsx'
 import { wantsReceipt } from '../features/settings/settingsStore.js'
 import { getRole } from '../lib/role.js'
+
+const NAME_KEY = 'dl_cashier_name'
+
+function savedName() {
+  try { return localStorage.getItem(NAME_KEY) || '' } catch { return '' }
+}
 
 export default function Sell() {
   const role = getRole()
@@ -11,40 +18,13 @@ export default function Sell() {
   const [text, setText] = useState('')
   const [lines, setLines] = useState([])
   const [receiptOn, setReceiptOn] = useState(true)
+  const [paid, setPaid] = useState('')
+  const [cashier, setCashier] = useState(savedName())
+  const [scanning, setScanning] = useState(false)
   const [message, setMessage] = useState('')
   const [lastSale, setLastSale] = useState(null)
   const [sales, setSales] = useState(loadSales())
   const [voids, setVoids] = useState(loadVoids())
-
-  if (role !== 'Cashier') {
-    return (
-      <div className="screen">
-        <h2>Sales</h2>
-        <p>Sales are recorded in the cashier role. The owner can switch to the cashier role to make a sale.</p>
-      </div>
-    )
-  }
-
-  if (lastSale) {
-    return (
-      <div className="screen">
-        {lastSale.receiptIssued ? (
-          <Receipt sale={lastSale} />
-        ) : (
-          <p>
-            Sale #{lastSale.receiptNo} recorded. Total ₦{lastSale.total.toLocaleString()}.{' '}
-            {lastSale.receiptOn
-              ? 'No receipt: items are below the receipt minimum.'
-              : 'Receipt was turned off.'}
-          </p>
-        )}
-        <button onClick={() => setLastSale(null)}>New sale</button>
-      </div>
-    )
-  }
-
-  const suggestions = text.trim() ? searchProducts(items, text).slice(0, 6) : []
-  const total = lines.reduce((s, l) => s + l.qty * l.price, 0)
 
   function addLine(p, unit) {
     const at = lines.findIndex(l => l.itemId === p.id && l.unitName === unit.name)
@@ -74,6 +54,16 @@ export default function Sell() {
     setText('')
   }
 
+  function onScan(code) {
+    setScanning(false)
+    const p = items.find(x => x.barcode && x.barcode === code)
+    if (!p) {
+      setMessage(`Barcode ${code} is not in inventory. Log it under Requests so the manager can add it.`)
+      return
+    }
+    addLine(p, p.units[0])
+  }
+
   function changeQty(i, delta) {
     const next = lines
       .map((l, j) => (j === i ? { ...l, qty: l.qty + delta } : l))
@@ -87,9 +77,18 @@ export default function Sell() {
     setLines(next)
   }
 
+  function changeName(e) {
+    setCashier(e.target.value)
+    try { localStorage.setItem(NAME_KEY, e.target.value) } catch {}
+  }
+
   function complete() {
     if (!lines.length) return
-    const result = recordSale(lines, receiptOn, 'Cashier')
+    if (!cashier.trim()) {
+      setMessage('Enter the cashier name first')
+      return
+    }
+    const result = recordSale(lines, receiptOn, cashier.trim(), paid)
     if (result.error) {
       setMessage(result.error)
       return
@@ -97,6 +96,7 @@ export default function Sell() {
     setItems(loadProducts())
     setSales(loadSales())
     setLines([])
+    setPaid('')
     setMessage('')
     setLastSale(result.sale)
   }
@@ -109,14 +109,59 @@ export default function Sell() {
     setItems(loadProducts())
   }
 
+  if (role !== 'Cashier') {
+    return (
+      <div className="screen">
+        <h2>Sales</h2>
+        <p>Sales are recorded in the cashier role. The owner can switch to the cashier role to make a sale.</p>
+      </div>
+    )
+  }
+
+  if (scanning) {
+    return (
+      <div className="screen">
+        <BarcodeScanner onCode={onScan} onClose={() => setScanning(false)} />
+      </div>
+    )
+  }
+
+  if (lastSale) {
+    return (
+      <div className="screen">
+        {lastSale.receiptIssued ? (
+          <Receipt sale={lastSale} />
+        ) : (
+          <p>
+            Sale #{lastSale.receiptNo} recorded. Total ₦{lastSale.total.toLocaleString()}.{' '}
+            {lastSale.receiptOn
+              ? 'No receipt: items are below the receipt minimum.'
+              : 'Receipt was turned off.'}
+          </p>
+        )}
+        <div className="noprint">
+          {lastSale.receiptIssued && <button onClick={() => window.print()}>Print receipt</button>}{' '}
+          <button onClick={() => setLastSale(null)}>New sale</button>
+        </div>
+      </div>
+    )
+  }
+
+  const suggestions = text.trim() ? searchProducts(items, text).slice(0, 6) : []
+  const total = lines.reduce((s, l) => s + l.qty * l.price, 0)
+
   return (
     <div className="screen">
       <h2>Sales</h2>
+      <label>Cashier name
+        <input value={cashier} onChange={changeName} />
+      </label>
       <input
         placeholder="Type a product name, brand or barcode"
         value={text}
         onChange={e => setText(e.target.value)}
       />
+      <button onClick={() => setScanning(true)}>Scan barcode with camera</button>
       {suggestions.map(p => (
         <div key={p.id} className="sug">
           <b>{p.name}</b>
@@ -144,8 +189,12 @@ export default function Sell() {
         </div>
       ))}
       <p><b>Total: ₦{total.toLocaleString()}</b></p>
-      <button onClick={() => setReceiptOn(!receiptOn)}>Receipt: {receiptOn ? 'ON' : 'OFF'}</button>{' '}
-      <button onClick={complete}>Complete sale</button>
+      <label>Amount paid (₦) — leave empty if exact
+        <input type="number" value={paid} onChange={e => setPaid(e.target.value)} />
+      </label>
+      <button onClick={() => setReceiptOn(!receiptOn)}>Receipt: {receiptOn ? 'ON' : 'OFF'}</button>
+      <span className="pill">{receiptOn ? 'tap to turn off' : 'tap to turn on'}</span>
+      <p><button onClick={complete}>Complete sale</button></p>
 
       <h3>Recent sales</h3>
       {sales.length === 0 && <p>None yet.</p>}
