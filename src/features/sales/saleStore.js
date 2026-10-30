@@ -1,5 +1,6 @@
 import { loadProducts, changeQuantities } from '../inventory/productStore.js'
 import { RECEIPT_FEE } from '../settings/settingsStore.js'
+import { loadBusiness, loadSignature } from '../business/businessStore.js'
 
 const SALES = 'dl_sales'
 const VOIDS = 'dl_voids'
@@ -39,21 +40,32 @@ export function checkStock(lines) {
   return ''
 }
 
-export function recordSale(lines, receiptOn, who) {
+export function recordSale(lines, receiptOn, cashier, paid) {
   const problem = checkStock(lines)
   if (problem) return { error: problem }
+  const items = loadProducts()
+  const total = lines.reduce((s, l) => s + l.qty * l.price, 0)
+  const amountPaid = paid === '' || paid === undefined ? total : Number(paid)
+  if (!(amountPaid >= total)) return { error: 'Amount paid is less than the total' }
   const sales = loadSales()
   const receiptIssued = receiptOn && lines.some(l => l.receipt)
   const sale = {
     id: Date.now().toString(),
     receiptNo: sales.length + 1,
     date: new Date().toISOString(),
-    cashier: who,
+    cashier,
     receiptOn,
     receiptIssued,
     fee: receiptIssued ? RECEIPT_FEE : 0,
-    lines: lines.map(l => ({ ...l })),
-    total: lines.reduce((s, l) => s + l.qty * l.price, 0)
+    business: loadBusiness(),
+    signatory: loadSignature(),
+    lines: lines.map(l => {
+      const p = items.find(x => x.id === l.itemId)
+      return { ...l, cost: (p ? p.unitCost : 0) * l.size }
+    }),
+    total,
+    paid: amountPaid,
+    change: amountPaid - total
   }
   write(SALES, [sale, ...sales])
   const used = baseUsed(lines)
