@@ -4,6 +4,7 @@ import {
   updateProduct, adjustQuantity, loadAdjustments
 } from '../features/inventory/productStore.js'
 import ItemEditor from '../features/inventory/ItemEditor.jsx'
+import BarcodeScanner from '../features/scan/BarcodeScanner.jsx'
 import { getRole } from '../lib/role.js'
 
 const empty = {
@@ -20,6 +21,7 @@ export default function Inventory() {
   const [form, setForm] = useState(empty)
   const [search, setSearch] = useState('')
   const [editId, setEditId] = useState(null)
+  const [scanning, setScanning] = useState(false)
 
   const editItem = items.find(p => p.id === editId)
   if (editItem && canManage) {
@@ -36,11 +38,13 @@ export default function Inventory() {
     )
   }
 
-  if (role === 'Cashier') {
+  if (scanning && canManage) {
     return (
       <div className="screen">
-        <h2>Inventory</h2>
-        <p>Only the manager can add or edit inventory.</p>
+        <BarcodeScanner
+          onCode={code => { setForm({ ...form, barcode: code }); setScanning(false) }}
+          onClose={() => setScanning(false)}
+        />
       </div>
     )
   }
@@ -67,6 +71,7 @@ export default function Inventory() {
           <input name="name" placeholder="Item name (e.g. Rice)" value={form.name} onChange={change} />
           <input name="brand" placeholder="Brand (optional)" value={form.brand} onChange={change} />
           <input name="barcode" placeholder="Barcode / SKU (optional)" value={form.barcode} onChange={change} />
+          <button onClick={() => setScanning(true)}>Scan barcode with camera</button>
           <input name="baseUnit" placeholder="Base unit of measure (e.g. cup, piece)" value={form.baseUnit} onChange={change} />
           <input name="basePrice" type="number" placeholder="Selling price per base unit (₦)" value={form.basePrice} onChange={change} />
           <input name="bigName" placeholder="Larger unit (optional, e.g. bag)" value={form.bigName} onChange={change} />
