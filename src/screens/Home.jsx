@@ -5,6 +5,7 @@ import { loadSales, loadVoids } from '../features/sales/saleStore.js'
 import { loadRequests } from '../features/requests/requestStore.js'
 import BusinessProfile from '../features/business/BusinessProfile.jsx'
 import ReceiptSettings from '../features/settings/ReceiptSettings.jsx'
+import BackupTools from '../features/settings/BackupTools.jsx'
 
 function startOfDay() {
   const d = new Date()
@@ -67,6 +68,7 @@ export default function Home() {
           {nearExpiry.map(p => (
             <div key={p.id} className="row"><span>{p.name}{p.brand ? ` · ${p.brand}` : ''}</span><span>{p.expiry}</span></div>
           ))}
+          <BackupTools />
         </>
       )}
 
@@ -82,6 +84,7 @@ export default function Home() {
           </div>
           <BusinessProfile />
           <ReceiptSettings />
+          <BackupTools />
         </>
       )}
 
