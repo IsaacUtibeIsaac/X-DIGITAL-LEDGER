@@ -9,8 +9,8 @@ import Sell from './screens/Sell.jsx'
 import Inventory from './screens/Inventory.jsx'
 import Customers from './screens/Customers.jsx'
 import Requests from './screens/Requests.jsx'
+import Receipts from './screens/Receipts.jsx'
 import Reports from './screens/Reports.jsx'
-import Settings from './screens/Settings.jsx'
 
 const screens = {
   Dashboard: Home,
@@ -18,15 +18,15 @@ const screens = {
   Inventory,
   Customers,
   Requests,
-  Reports,
-  Settings
+  Receipts,
+  Reports
 }
 
-// Which tabs each role can see
+// Which tabs each role can see (the first tab opens by default)
 const tabsByRole = {
-  Owner: ['Dashboard', 'Inventory', 'Customers', 'Requests', 'Reports'],
-  Manager: ['Inventory', 'Requests', 'Settings'],
-  Cashier: ['Sales', 'Customers', 'Requests']
+  Owner: ['Dashboard', 'Inventory', 'Customers', 'Requests', 'Receipts', 'Reports'],
+  Manager: ['Dashboard', 'Inventory', 'Requests', 'Receipts'],
+  Cashier: ['Sales', 'Receipts', 'Customers', 'Requests', 'Dashboard']
 }
 
 const TEST_MODE = true
