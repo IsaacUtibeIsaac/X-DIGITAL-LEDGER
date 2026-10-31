@@ -1,6 +1,6 @@
 import { loadProducts, changeQuantities } from '../inventory/productStore.js'
 import { RECEIPT_FEE } from '../settings/settingsStore.js'
-import { loadBusiness, loadSignature } from '../business/businessStore.js'
+import { loadBusiness } from '../business/businessStore.js'
 
 const SALES = 'dl_sales'
 const VOIDS = 'dl_voids'
@@ -19,6 +19,17 @@ function write(key, value) {
 
 export const loadSales = () => read(SALES)
 export const loadVoids = () => read(VOIDS)
+
+// Random, searchable tracking ID such as DL-4829-1750-3641
+function makeTrackingId(existing) {
+  for (let tries = 0; tries < 20; tries++) {
+    const bytes = crypto.getRandomValues(new Uint8Array(12))
+    const digits = Array.from(bytes, b => b % 10).join('')
+    const id = 'DL-' + digits.slice(0, 4) + '-' + digits.slice(4, 8) + '-' + digits.slice(8, 12)
+    if (!existing.some(s => s.trackingId === id)) return id
+  }
+  return 'DL-' + Date.now()
+}
 
 function baseUsed(lines) {
   const used = {}
@@ -52,13 +63,13 @@ export function recordSale(lines, receiptOn, cashier, paid) {
   const sale = {
     id: Date.now().toString(),
     receiptNo: sales.length + 1,
+    trackingId: makeTrackingId(sales),
     date: new Date().toISOString(),
     cashier,
     receiptOn,
     receiptIssued,
     fee: receiptIssued ? RECEIPT_FEE : 0,
     business: loadBusiness(),
-    signatory: loadSignature(),
     lines: lines.map(l => {
       const p = items.find(x => x.id === l.itemId)
       return { ...l, cost: (p ? p.unitCost : 0) * l.size }
