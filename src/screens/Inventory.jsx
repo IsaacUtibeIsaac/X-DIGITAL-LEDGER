@@ -42,7 +42,7 @@ export default function Inventory() {
     return (
       <div className="screen">
         <BarcodeScanner
-          onCode={code => { setForm({ ...form, barcode: code }); setScanning(false) }}
+          onCode={code => { setForm(f => ({ ...f, barcode: code })); setScanning(false) }}
           onClose={() => setScanning(false)}
         />
       </div>
@@ -68,22 +68,36 @@ export default function Inventory() {
       <h2>Inventory</h2>
       {canManage && (
         <>
-          <input name="name" placeholder="Item name (e.g. Rice)" value={form.name} onChange={change} />
-          <input name="brand" placeholder="Brand (optional)" value={form.brand} onChange={change} />
-          <input name="barcode" placeholder="Barcode / SKU (optional)" value={form.barcode} onChange={change} />
-          <button onClick={() => setScanning(true)}>Scan barcode with camera</button>
-          <input name="baseUnit" placeholder="Base unit of measure (e.g. cup, piece)" value={form.baseUnit} onChange={change} />
-          <input name="basePrice" type="number" placeholder="Selling price per base unit (₦)" value={form.basePrice} onChange={change} />
-          <input name="bigName" placeholder="Larger unit (optional, e.g. bag)" value={form.bigName} onChange={change} />
-          <input name="bigSize" type="number" placeholder="Base units in one larger unit" value={form.bigSize} onChange={change} />
-          <input name="bigPrice" type="number" placeholder="Selling price per larger unit (₦)" value={form.bigPrice} onChange={change} />
-          <input name="quantity" type="number" placeholder="Quantity on hand" value={form.quantity} onChange={change} />
-          <select name="stockUnit" value={form.stockUnit} onChange={change}>
-            {unitChoices.map(u => <option key={u} value={u}>Quantity is in {u}</option>)}
-          </select>
-          <input name="cost" type="number" placeholder={`Cost price per ${chosenUnit} (₦)`} value={form.cost} onChange={change} />
-          <input name="expiry" type="date" value={form.expiry} onChange={change} />
-          <button onClick={submit}>Add item</button>
+          <div className="grid2">
+            <input name="name" placeholder="Item name" value={form.name} onChange={change} />
+            <input name="brand" placeholder="Brand" value={form.brand} onChange={change} />
+          </div>
+          <div className="grid2">
+            <input name="barcode" placeholder="Barcode / SKU" value={form.barcode} onChange={change} />
+            <button onClick={() => setScanning(true)}>Scan barcode</button>
+          </div>
+          <div className="grid2">
+            <input name="baseUnit" placeholder="Base unit (cup, piece)" value={form.baseUnit} onChange={change} />
+            <input name="basePrice" type="number" placeholder="Price per base unit ₦" value={form.basePrice} onChange={change} />
+          </div>
+          <div className="grid2">
+            <input name="bigName" placeholder="Larger unit (bag)" value={form.bigName} onChange={change} />
+            <input name="bigSize" type="number" placeholder="Base units in it" value={form.bigSize} onChange={change} />
+          </div>
+          <div className="grid2">
+            <input name="bigPrice" type="number" placeholder="Price per larger unit ₦" value={form.bigPrice} onChange={change} />
+            <input name="quantity" type="number" placeholder="Quantity on hand" value={form.quantity} onChange={change} />
+          </div>
+          <div className="grid2">
+            <select name="stockUnit" value={form.stockUnit} onChange={change}>
+              {unitChoices.map(u => <option key={u} value={u}>Quantity is in {u}</option>)}
+            </select>
+            <input name="cost" type="number" placeholder={`Cost price per ${chosenUnit} ₦`} value={form.cost} onChange={change} />
+          </div>
+          <div className="grid2">
+            <input name="expiry" type="date" value={form.expiry} onChange={change} />
+            <button className="big" onClick={submit}>Add item</button>
+          </div>
         </>
       )}
 
