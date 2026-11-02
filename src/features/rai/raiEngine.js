@@ -1,5 +1,5 @@
 import { loadProducts, describeStock, inventoryValue } from '../inventory/productStore.js'
-import { loadSales, loadVoids } from '../sales/saleStore.js'
+import { loadSales, loadVoids, goodsTotal } from '../sales/saleStore.js'
 import { loadRequests } from '../requests/requestStore.js'
 import { RECEIPT_FEE } from '../settings/settingsStore.js'
 
@@ -52,7 +52,7 @@ function mySales() {
   try { me = localStorage.getItem('dl_cashier_name') || '' } catch {}
   const list = between(validSales(), startOfDay(), Date.now() + 1).filter(s => s.cashier === me)
   if (!list.length) return [`No sales recorded today under the name "${me || 'not set'}".`]
-  const total = list.reduce((t, s) => t + s.total, 0)
+  const total = list.reduce((t, s) => t + goodsTotal(s), 0)
   return [
     `Today you made ${list.length} sale(s) worth ${naira(total)}.`,
     `Receipts issued: ${list.filter(s => s.receiptIssued).length}.`
@@ -63,7 +63,7 @@ function profit(q) {
   const { from, label } = periodFrom(q)
   const list = between(validSales(), from, Date.now() + 1)
   if (!list.length) return [`No sales recorded for ${label}.`]
-  const revenue = list.reduce((t, s) => t + s.total, 0)
+  const revenue = list.reduce((t, s) => t + goodsTotal(s), 0)
   const cost = list.reduce((t, s) => t + s.lines.reduce((c, l) => c + (l.cost || 0) * l.qty, 0), 0)
   const lines = [
     `For ${label}:`,
@@ -82,7 +82,7 @@ function salesTotals(q) {
   const { from, label } = periodFrom(q)
   const list = between(validSales(), from, Date.now() + 1)
   if (!list.length) return [`No sales recorded for ${label}.`]
-  const total = list.reduce((t, s) => t + s.total, 0)
+  const total = list.reduce((t, s) => t + goodsTotal(s), 0)
   return [
     `Sales for ${label}: ${naira(total)} from ${list.length} sale(s).`,
     `Average sale: ${naira(total / list.length)}.`,
@@ -99,7 +99,7 @@ function cashierPerformance() {
     const k = s.cashier || 'Unknown'
     const e = by[k] || (by[k] = { n: 0, total: 0, voids: 0 })
     if (voided.has(s.id)) e.voids += 1
-    else { e.n += 1; e.total += s.total }
+    else { e.n += 1; e.total += goodsTotal(s) }
   })
   const lines = ['Cashier activity, last 7 days:']
   Object.entries(by)
@@ -126,23 +126,32 @@ function movementRows() {
 }
 
 function restock() {
+  const lines = []
+  const below = loadProducts().filter(p => p.reorderLevel > 0 && p.quantity <= p.reorderLevel)
+  if (below.length) {
+    lines.push('At or below the reorder level:')
+    below.forEach(p =>
+      lines.push(`• ${named(p)}: ${describeStock(p)} on hand (reorder level ${p.reorderLevel} ${p.baseUnit})`))
+  }
   const recent = between(validSales(), Date.now() - 14 * DAY, Date.now() + 1)
   if (!recent.length) {
-    return ['No sales recorded in the last 14 days, so I cannot estimate restocking yet. Record some sales first.']
+    lines.push('No sales recorded in the last 14 days, so I cannot estimate demand-based restocking yet.')
+    return lines
   }
   const need = movementRows()
     .filter(r => (r.a > 0 || r.b > 0) && (r.p.quantity === 0 || (r.daysLeft !== null && r.daysLeft <= 7)))
     .sort((x, y) => (x.daysLeft ?? 0) - (y.daysLeft ?? 0))
   if (!need.length) {
-    return ['Nothing needs restocking within the next 7 days at the current pace.', evidence(recent.length)]
+    lines.push('Nothing else is likely to run out within 7 days at the current pace.')
+  } else {
+    lines.push('Likely to run out within 7 days at the current pace:')
+    need.forEach(r => {
+      const rate = Math.round(r.perDay * 10) / 10
+      const left = r.p.quantity === 0 ? 'out of stock' : `lasts about ${Math.round(r.daysLeft * 10) / 10} day(s)`
+      lines.push(`• ${named(r.p)}: ${describeStock(r.p)} on hand, selling about ${rate} ${r.p.baseUnit}/day, ${left}. Demand ${r.trend}.`)
+    })
+    lines.push('Estimates are approximate (about ±10 units).')
   }
-  const lines = ['Likely to run out within 7 days:']
-  need.forEach(r => {
-    const rate = Math.round(r.perDay * 10) / 10
-    const left = r.p.quantity === 0 ? 'out of stock' : `lasts about ${Math.round(r.daysLeft * 10) / 10} day(s)`
-    lines.push(`• ${named(r.p)}: ${describeStock(r.p)} on hand, selling about ${rate} ${r.p.baseUnit}/day, ${left}. Demand ${r.trend}.`)
-  })
-  lines.push('Estimates are approximate (about ±10 units).')
   lines.push(evidence(recent.length))
   return lines
 }
@@ -227,10 +236,12 @@ function voidList() {
 }
 
 function receiptFees() {
-  const issued = validSales().filter(s => s.receiptIssued).length
+  const valid = validSales()
+  const issued = valid.filter(s => s.receiptIssued).length
+  const charged = valid.reduce((t, s) => t + (s.fee || 0), 0)
   return [
     `Receipts issued: ${issued}.`,
-    `Fees at ₦${RECEIPT_FEE} each: ${naira(issued * RECEIPT_FEE)} (counted only during the free pilot).`
+    `System charges added to customers' bills: ${naira(charged)}. This is not shop revenue. It is owed to Digital Ledger (test period, not yet collected).`
   ]
 }
 
@@ -312,7 +323,7 @@ const INTENTS = [
   { test: /(expir|discount|spoil)/, roles: STOCK_STAFF, run: () => expiring() },
   { test: /(best|top|most).*(sell|sold|item|product)|bestsell/, roles: STOCK_STAFF, run: (q, role) => bestSellers(role) },
   { test: /(voided|voids|cancelled sales)/, roles: ['Owner'], run: () => voidList() },
-  { test: /receipt.*(fee|issued|count|how many)|fees accrued/, roles: ['Owner'], run: () => receiptFees() },
+  { test: /receipt.*(fee|charge|issued|count|how many)|fees accrued|system charge/, roles: ['Owner'], run: () => receiptFees() },
   { test: /(inventory|stock).*(value|worth)|worth/, roles: ['Owner'], run: () => inventoryWorth() },
   { test: /\b(sales|takings|revenue|turnover)\b/, roles: ['Owner'], run: q => salesTotals(q) },
   { test: /(request|asked for|unavailable)/, roles: ALL, run: () => openRequests() }
