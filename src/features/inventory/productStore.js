@@ -1,12 +1,15 @@
 const KEY = 'dl_products'
+const ADJ_KEY = 'dl_adjustments'
 
 function normalise(p) {
-  if (p.units) return { unitCost: 0, ...p }
+  if (p.units) return { unitCost: 0, category: '', reorderLevel: 0, ...p }
   return {
     ...p,
     brand: p.brand || '',
     baseUnit: 'piece',
     unitCost: 0,
+    category: '',
+    reorderLevel: 0,
     units: [{ name: 'piece', size: 1, price: p.price || 0 }]
   }
 }
@@ -41,10 +44,12 @@ export function addProduct(f) {
     id: Date.now().toString(),
     name: f.name.trim(),
     brand: f.brand.trim(),
+    category: (f.category || '').trim(),
     barcode: f.barcode.trim(),
     baseUnit: units[0].name,
     units,
     quantity: (Number(f.quantity) || 0) * stockUnit.size,
+    reorderLevel: (Number(f.reorder) || 0) * stockUnit.size,
     unitCost: (Number(f.cost) || 0) / stockUnit.size,
     expiry: f.expiry || '',
     createdAt: new Date().toISOString()
@@ -56,6 +61,10 @@ export function addProduct(f) {
 
 export function inventoryValue(list) {
   return list.reduce((sum, p) => sum + p.quantity * p.unitCost, 0)
+}
+
+export function lowStock(list) {
+  return list.filter(p => p.reorderLevel > 0 && p.quantity <= p.reorderLevel)
 }
 
 export function describeStock(p) {
@@ -72,10 +81,20 @@ export function searchProducts(list, text) {
   return list.filter(p =>
     p.name.toLowerCase().includes(t) ||
     p.brand.toLowerCase().includes(t) ||
+    (p.category || '').toLowerCase().includes(t) ||
     p.barcode.includes(t)
   )
 }
-const ADJ_KEY = 'dl_adjustments'
+
+export function changeQuantities(changes) {
+  const list = loadProducts().map(p => {
+    const c = changes.find(x => x.id === p.id)
+    if (!c) return p
+    return { ...p, quantity: Math.max(0, p.quantity + c.baseQty) }
+  })
+  save(list)
+  return list
+}
 
 export function loadAdjustments() {
   try {
@@ -92,8 +111,10 @@ export function updateProduct(id, c) {
       ...p,
       name: c.name.trim() || p.name,
       brand: c.brand.trim(),
+      category: (c.category || '').trim(),
       barcode: c.barcode.trim(),
       expiry: c.expiry || '',
+      reorderLevel: Number(c.reorderLevel) || 0,
       unitCost: Number(c.unitCost) || 0,
       units: p.units.map((u, i) => ({ ...u, price: Number(c.prices[i]) || 0 }))
     }
@@ -129,13 +150,4 @@ export function adjustQuantity(id, a) {
     ]))
   } catch {}
   return next
-}
-export function changeQuantities(changes) {
-  const list = loadProducts().map(p => {
-    const c = changes.find(x => x.id === p.id)
-    if (!c) return p
-    return { ...p, quantity: Math.max(0, p.quantity + c.baseQty) }
-  })
-  save(list)
-  return list
 }
