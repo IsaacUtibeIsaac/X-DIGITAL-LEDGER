@@ -1,17 +1,17 @@
 import { useState } from 'react'
 import {
   loadProducts, addProduct, searchProducts, describeStock, inventoryValue,
-  updateProduct, adjustQuantity, loadAdjustments
+  updateProduct, adjustQuantity, loadAdjustments, lowStock
 } from '../features/inventory/productStore.js'
 import ItemEditor from '../features/inventory/ItemEditor.jsx'
 import BarcodeScanner from '../features/scan/BarcodeScanner.jsx'
 import { getRole } from '../lib/role.js'
 
 const empty = {
-  name: '', brand: '', barcode: '',
+  name: '', brand: '', category: '', barcode: '',
   baseUnit: 'piece', basePrice: '',
   bigName: '', bigSize: '', bigPrice: '',
-  stockUnit: '', quantity: '', cost: '', expiry: ''
+  stockUnit: '', quantity: '', reorder: '', cost: '', expiry: ''
 }
 
 export default function Inventory() {
@@ -62,6 +62,7 @@ export default function Inventory() {
   const unitChoices = [form.baseUnit || 'piece', form.bigName].filter(Boolean)
   const chosenUnit = form.stockUnit || unitChoices[0]
   const shown = searchProducts(items, search)
+  const low = new Set(lowStock(items).map(p => p.id))
 
   return (
     <div className="screen">
@@ -73,9 +74,10 @@ export default function Inventory() {
             <input name="brand" placeholder="Brand" value={form.brand} onChange={change} />
           </div>
           <div className="grid2">
+            <input name="category" placeholder="Category (Grains, Drinks)" value={form.category} onChange={change} />
             <input name="barcode" placeholder="Barcode / SKU" value={form.barcode} onChange={change} />
-            <button onClick={() => setScanning(true)}>Scan barcode</button>
           </div>
+          <button onClick={() => setScanning(true)}>Scan barcode with camera</button>
           <div className="grid2">
             <input name="baseUnit" placeholder="Base unit (cup, piece)" value={form.baseUnit} onChange={change} />
             <input name="basePrice" type="number" placeholder="Price per base unit ₦" value={form.basePrice} onChange={change} />
@@ -95,23 +97,24 @@ export default function Inventory() {
             <input name="cost" type="number" placeholder={`Cost price per ${chosenUnit} ₦`} value={form.cost} onChange={change} />
           </div>
           <div className="grid2">
+            <input name="reorder" type="number" placeholder={`Reorder level (${chosenUnit})`} value={form.reorder} onChange={change} />
             <input name="expiry" type="date" value={form.expiry} onChange={change} />
-            <button className="big" onClick={submit}>Add item</button>
           </div>
+          <button className="big" onClick={submit}>Add item</button>
         </>
       )}
 
       <h3>Items ({items.length})</h3>
       <p>Total inventory value: ₦{Math.round(inventoryValue(items)).toLocaleString()}</p>
-      <input placeholder="Search name, brand or barcode" value={search} onChange={e => setSearch(e.target.value)} />
+      <input placeholder="Search name, brand, category or barcode" value={search} onChange={e => setSearch(e.target.value)} />
       <p>{canManage ? 'Tap an item to edit it.' : 'View only. Switch to the manager role to edit.'}</p>
       {shown.map(p => (
         <div key={p.id} className="row" onClick={canManage ? () => setEditId(p.id) : undefined}>
           <div>
-            <b>{p.name}</b>{p.brand ? ` · ${p.brand}` : ''}
+            <b>{p.name}</b>{p.brand ? ` · ${p.brand}` : ''}{p.category ? ` · ${p.category}` : ''}
             <div>{p.units.map(u => `${u.name} ₦${u.price.toLocaleString()}`).join(' · ')}</div>
           </div>
-          <span>On hand: {describeStock(p)}</span>
+          <span>On hand: {describeStock(p)}{low.has(p.id) ? ' · LOW' : ''}</span>
         </div>
       ))}
     </div>
