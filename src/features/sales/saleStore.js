@@ -1,5 +1,5 @@
 import { loadProducts, changeQuantities } from '../inventory/productStore.js'
-import { RECEIPT_FEE } from '../settings/settingsStore.js'
+import { RECEIPT_FEE, loadSettings } from '../settings/settingsStore.js'
 import { loadBusiness } from '../business/businessStore.js'
 
 const SALES = 'dl_sales'
@@ -20,6 +20,9 @@ function write(key, value) {
 export const loadSales = () => read(SALES)
 export const loadVoids = () => read(VOIDS)
 
+// Shop revenue: goods only. The automated system charge is NOT shop revenue.
+export const goodsTotal = s => (s.subtotal !== undefined ? s.subtotal : s.total)
+
 // Random, searchable tracking ID such as DL-4829-1750-3641
 function makeTrackingId(existing) {
   for (let tries = 0; tries < 20; tries++) {
@@ -34,9 +37,16 @@ function makeTrackingId(existing) {
 function baseUsed(lines) {
   const used = {}
   lines.forEach(l => {
+    if (l.system || !l.itemId) return
     used[l.itemId] = (used[l.itemId] || 0) + l.qty * l.size
   })
   return used
+}
+
+// The system charge applies only when a receipt will be issued
+export function previewCharge(lines, receiptOn) {
+  if (!receiptOn || !loadSettings().chargeOnReceipt) return 0
+  return lines.some(l => l.receipt) ? RECEIPT_FEE : 0
 }
 
 export function checkStock(lines) {
@@ -55,11 +65,25 @@ export function recordSale(lines, receiptOn, cashier, paid) {
   const problem = checkStock(lines)
   if (problem) return { error: problem }
   const items = loadProducts()
-  const total = lines.reduce((s, l) => s + l.qty * l.price, 0)
-  const amountPaid = paid === '' || paid === undefined ? total : Number(paid)
-  if (!(amountPaid >= total)) return { error: 'Amount paid is less than the total' }
-  const sales = loadSales()
+  const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0)
   const receiptIssued = receiptOn && lines.some(l => l.receipt)
+  const fee = previewCharge(lines, receiptOn)
+  const total = subtotal + fee
+  const amountPaid = paid === '' || paid === undefined ? total : Number(paid)
+  if (!(amountPaid >= total)) return { error: 'Amount paid is less than the grand total' }
+  const sales = loadSales()
+
+  const saved = lines.map(l => {
+    const p = items.find(x => x.id === l.itemId)
+    return { ...l, cost: (p ? p.unitCost : 0) * l.size }
+  })
+  if (fee > 0) {
+    saved.push({
+      system: true, itemId: null, name: 'System charge (receipt)',
+      brand: '', unitName: 'charge', size: 0, price: fee, qty: 1, cost: 0, receipt: false
+    })
+  }
+
   const sale = {
     id: Date.now().toString(),
     receiptNo: sales.length + 1,
@@ -68,12 +92,10 @@ export function recordSale(lines, receiptOn, cashier, paid) {
     cashier,
     receiptOn,
     receiptIssued,
-    fee: receiptIssued ? RECEIPT_FEE : 0,
+    subtotal,
+    fee,
     business: loadBusiness(),
-    lines: lines.map(l => {
-      const p = items.find(x => x.id === l.itemId)
-      return { ...l, cost: (p ? p.unitCost : 0) * l.size }
-    }),
+    lines: saved,
     total,
     paid: amountPaid,
     change: amountPaid - total
