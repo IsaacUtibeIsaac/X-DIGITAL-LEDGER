@@ -99,7 +99,9 @@ function drawContent(ctx, sale) {
 
   ctx.font = '12px ' + SANS
   sale.lines.forEach(l => {
-    const label = l.name + (l.brand ? ' (' + l.brand + ')' : '') + ' · ' + l.unitName + ' @ ' + money(l.price)
+    const label = l.system
+      ? l.name
+      : l.name + (l.brand ? ' (' + l.brand + ')' : '') + ' · ' + l.unitName + ' @ ' + money(l.price)
     const parts = wrap(ctx, label, inner * 0.58)
     ctx.textAlign = 'left'
     parts.forEach((p, i) => ctx.fillText(p, M, y + i * 15))
@@ -116,7 +118,7 @@ function drawContent(ctx, sale) {
   // Totals, amount paid in figures and words
   ctx.font = 'bold 14px ' + SANS
   ctx.textAlign = 'left'
-  ctx.fillText('Total', M, y)
+  ctx.fillText('Grand total', M, y)
   ctx.textAlign = 'right'
   ctx.fillText(money(sale.total), W - M, y)
   y += 20
