@@ -1,7 +1,11 @@
 const KEY = 'dl_business'
 const SIG = 'dl_signature'
 
-const blank = { name: '', cac: '', hotline: '', email: '', address: '' }
+const blank = {
+  name: '', cac: '', hotline: '', email: '', address: '',
+  ownerName: '', ownerPhone: '', state: '', businessType: '', staffCount: '',
+  createdAt: ''
+}
 
 export function loadBusiness() {
   try {
@@ -12,7 +16,10 @@ export function loadBusiness() {
 }
 
 export function saveBusiness(b) {
-  try { localStorage.setItem(KEY, JSON.stringify(b)) } catch {}
+  const existing = loadBusiness()
+  const next = { ...b, createdAt: existing.createdAt || new Date().toISOString() }
+  try { localStorage.setItem(KEY, JSON.stringify(next)) } catch {}
+  return next
 }
 
 export function loadSignature() {
