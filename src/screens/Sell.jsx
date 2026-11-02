@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react'
 import { loadProducts, searchProducts, describeStock } from '../features/inventory/productStore.js'
-import { recordSale, voidSale, loadSales, loadVoids, checkStock } from '../features/sales/saleStore.js'
+import { recordSale, voidSale, loadSales, loadVoids, checkStock, previewCharge } from '../features/sales/saleStore.js'
 import ReceiptView from '../features/sales/ReceiptView.jsx'
 import BarcodeScanner from '../features/scan/BarcodeScanner.jsx'
+import VoiceButton from '../features/scan/VoiceButton.jsx'
 import { wantsReceipt } from '../features/settings/settingsStore.js'
 import { getRole } from '../lib/role.js'
 
@@ -143,7 +144,9 @@ export default function Sell() {
   }
 
   const suggestions = text.trim() ? searchProducts(items, text).slice(0, 6) : []
-  const total = lines.reduce((s, l) => s + l.qty * l.price, 0)
+  const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0)
+  const fee = previewCharge(lines, receiptOn)
+  const total = subtotal + fee
 
   return (
     <div className="screen">
@@ -151,11 +154,14 @@ export default function Sell() {
         ? <BarcodeScanner continuous onCode={onScan} onClose={() => setScanning(false)} />
         : <button className="big" onClick={() => setScanning(true)}>Scan items with camera</button>}
 
-      <input
-        placeholder="Type a product name, brand or barcode"
-        value={text}
-        onChange={e => setText(e.target.value)}
-      />
+      <div className="searchrow">
+        <input
+          placeholder="Type or say a product name, brand or barcode"
+          value={text}
+          onChange={e => setText(e.target.value)}
+        />
+        <VoiceButton onText={setText} />
+      </div>
       {suggestions.map(p => (
         <div key={p.id} className="sug">
           <b>{p.name}</b>
@@ -182,10 +188,16 @@ export default function Sell() {
           </span>
         </div>
       ))}
-      <p className="totalline">Total: ₦{total.toLocaleString()}</p>
+      {fee > 0 && (
+        <div className="row">
+          <span>System charge (receipt), automatic</span>
+          <span>₦{fee.toLocaleString()}</span>
+        </div>
+      )}
+      <p className="totalline">Grand total: ₦{total.toLocaleString()}</p>
 
       <div className="grid2">
-        <label>Amount paid (₦), empty = exact
+        <label>Amount paid (₦), empty = grand total
           <input type="number" value={paid} onChange={e => setPaid(e.target.value)} />
         </label>
         <label>Cashier name
