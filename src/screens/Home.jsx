@@ -1,8 +1,9 @@
 import { supabase } from '../lib/supabase.js'
 import { getRole } from '../lib/role.js'
-import { loadProducts, inventoryValue } from '../features/inventory/productStore.js'
-import { loadSales, loadVoids } from '../features/sales/saleStore.js'
+import { loadProducts, inventoryValue, lowStock } from '../features/inventory/productStore.js'
+import { loadSales, loadVoids, goodsTotal } from '../features/sales/saleStore.js'
 import { loadRequests } from '../features/requests/requestStore.js'
+import AccountReview from '../features/business/AccountReview.jsx'
 import BusinessProfile from '../features/business/BusinessProfile.jsx'
 import ReceiptSettings from '../features/settings/ReceiptSettings.jsx'
 import BackupTools from '../features/settings/BackupTools.jsx'
@@ -23,7 +24,10 @@ function Stat({ label, value }) {
 }
 
 const naira = n => '₦' + Math.round(n).toLocaleString()
-const sum = list => list.reduce((t, s) => t + s.total, 0)
+// Shop revenue excludes the automated system charge
+const revenue = list => list.reduce((t, s) => t + goodsTotal(s), 0)
+const cash = list => list.reduce((t, s) => t + s.total, 0)
+const fees = list => list.reduce((t, s) => t + (s.fee || 0), 0)
 const costOf = list =>
   list.reduce((t, s) => t + s.lines.reduce((c, l) => c + (l.cost || 0) * l.qty, 0), 0)
 
@@ -35,6 +39,7 @@ export default function Home() {
   const today = sales.filter(s => new Date(s.date).getTime() >= dayStart)
   const week = sales.filter(s => new Date(s.date).getTime() >= dayStart - 6 * 86400000)
   const items = loadProducts()
+  const low = lowStock(items)
   const openRequests = loadRequests().filter(r => !r.done).length
   const nearExpiry = items.filter(
     p => p.expiry && (new Date(p.expiry).getTime() - Date.now()) / 86400000 <= 30
@@ -50,7 +55,7 @@ export default function Home() {
       {role === 'Cashier' && (
         <div className="stats">
           <Stat label="My sales today" value={mine.length} />
-          <Stat label="My takings today" value={naira(sum(mine))} />
+          <Stat label="Cash collected today (incl. system charge)" value={naira(cash(mine))} />
           <Stat label="Receipts issued today" value={mine.filter(s => s.receiptIssued).length} />
           <Stat label="Open item requests" value={openRequests} />
         </div>
@@ -60,10 +65,17 @@ export default function Home() {
         <>
           <div className="stats">
             <Stat label="Items in inventory" value={items.length} />
+            <Stat label="Below reorder level" value={low.length} />
             <Stat label="Open item requests" value={openRequests} />
-            <Stat label="Sales today" value={today.length} />
             <Stat label="Near expiry (30 days)" value={nearExpiry.length} />
           </div>
+          {low.length > 0 && <h3>Restock now</h3>}
+          {low.map(p => (
+            <div key={p.id} className="row">
+              <span>{p.name}{p.brand ? ` · ${p.brand}` : ''}</span>
+              <span>{p.quantity} {p.baseUnit} left</span>
+            </div>
+          ))}
           {nearExpiry.length > 0 && <h3>Near expiry</h3>}
           {nearExpiry.map(p => (
             <div key={p.id} className="row"><span>{p.name}{p.brand ? ` · ${p.brand}` : ''}</span><span>{p.expiry}</span></div>
@@ -75,13 +87,16 @@ export default function Home() {
       {role === 'Owner' && (
         <>
           <div className="stats">
-            <Stat label="Sales today" value={naira(sum(today))} />
-            <Stat label="Sales, last 7 days" value={naira(sum(week))} />
-            <Stat label="Gross profit today" value={naira(sum(today) - costOf(today))} />
+            <Stat label="Shop sales today" value={naira(revenue(today))} />
+            <Stat label="Shop sales, last 7 days" value={naira(revenue(week))} />
+            <Stat label="Gross profit today" value={naira(revenue(today) - costOf(today))} />
+            <Stat label="System charges today (not shop revenue)" value={naira(fees(today))} />
             <Stat label="Inventory value" value={naira(inventoryValue(items))} />
+            <Stat label="Below reorder level" value={low.length} />
             <Stat label="Voided sales" value={voided.size} />
             <Stat label="Open item requests" value={openRequests} />
           </div>
+          <AccountReview />
           <BusinessProfile />
           <ReceiptSettings />
           <BackupTools />
