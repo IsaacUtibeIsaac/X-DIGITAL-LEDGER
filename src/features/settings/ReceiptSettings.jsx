@@ -1,23 +1,39 @@
 import { useState } from 'react'
 import { loadSettings, saveSettings, RECEIPT_FEE } from './settingsStore.js'
-import { loadSales } from '../sales/saleStore.js'
+import { loadSales, loadVoids } from '../sales/saleStore.js'
 
 export default function ReceiptSettings() {
   const [min, setMin] = useState(loadSettings().minReceiptPrice)
+  const [charge, setCharge] = useState(loadSettings().chargeOnReceipt)
   const [saved, setSaved] = useState(false)
-  const issued = loadSales().filter(s => s.receiptIssued).length
+
+  const voided = new Set(loadVoids().map(v => v.saleId))
+  const valid = loadSales().filter(s => !voided.has(s.id))
+  const issued = valid.filter(s => s.receiptIssued).length
+  const charged = valid.reduce((t, s) => t + (s.fee || 0), 0)
 
   function save() {
     saveSettings({ minReceiptPrice: Number(min) || 0 })
     setSaved(true)
   }
 
+  function toggleCharge() {
+    saveSettings({ chargeOnReceipt: !charge })
+    setCharge(!charge)
+  }
+
   return (
     <div>
       <h3>Receipt settings</h3>
-      <p>Receipt fee: ₦{RECEIPT_FEE} each (counted only during the free pilot).</p>
       <p>
-        Receipts issued: {issued} · fees accrued: ₦{(issued * RECEIPT_FEE).toLocaleString()}
+        System charge: ₦{RECEIPT_FEE} is added to the customer's bill as its own line whenever a receipt is issued.
+        It is not shop revenue. It is owed to Digital Ledger (test period, not yet collected).
+      </p>
+      <p>
+        <button onClick={toggleCharge}>System charge: {charge ? 'ON' : 'OFF'}</button>
+      </p>
+      <p>
+        Receipts issued: {issued} · system charges added: ₦{charged.toLocaleString()}
       </p>
       <label>No receipt for items priced below (₦). Use 0 to turn this off.
         <input
