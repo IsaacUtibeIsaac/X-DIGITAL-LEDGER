@@ -7,8 +7,10 @@ export default function ItemEditor({ item, history, onSave, onAdjust, onClose })
   const [f, setF] = useState({
     name: item.name,
     brand: item.brand,
+    category: item.category || '',
     barcode: item.barcode,
     expiry: item.expiry,
+    reorderLevel: item.reorderLevel || 0,
     unitCost: Math.round(item.unitCost * 100) / 100,
     prices: item.units.map(u => u.price)
   })
@@ -26,23 +28,35 @@ export default function ItemEditor({ item, history, onSave, onAdjust, onClose })
     <div>
       <button onClick={onClose}>← Back to inventory</button>
       <h3>Edit item</h3>
-      <label>Item name
-        <input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} />
-      </label>
-      <label>Brand
-        <input value={f.brand} onChange={e => setF({ ...f, brand: e.target.value })} />
-      </label>
-      <label>Barcode / SKU
-        <input value={f.barcode} onChange={e => setF({ ...f, barcode: e.target.value })} />
-      </label>
+      <div className="grid2">
+        <label>Item name
+          <input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} />
+        </label>
+        <label>Brand
+          <input value={f.brand} onChange={e => setF({ ...f, brand: e.target.value })} />
+        </label>
+      </div>
+      <div className="grid2">
+        <label>Category
+          <input value={f.category} onChange={e => setF({ ...f, category: e.target.value })} />
+        </label>
+        <label>Barcode / SKU
+          <input value={f.barcode} onChange={e => setF({ ...f, barcode: e.target.value })} />
+        </label>
+      </div>
       {item.units.map((u, i) => (
         <label key={u.name}>Selling price per {u.name} (₦)
           <input type="number" value={f.prices[i]} onChange={e => setPrice(i, e.target.value)} />
         </label>
       ))}
-      <label>Cost price per {item.baseUnit} (₦)
-        <input type="number" value={f.unitCost} onChange={e => setF({ ...f, unitCost: e.target.value })} />
-      </label>
+      <div className="grid2">
+        <label>Cost price per {item.baseUnit} (₦)
+          <input type="number" value={f.unitCost} onChange={e => setF({ ...f, unitCost: e.target.value })} />
+        </label>
+        <label>Reorder level ({item.baseUnit})
+          <input type="number" value={f.reorderLevel} onChange={e => setF({ ...f, reorderLevel: e.target.value })} />
+        </label>
+      </div>
       <label>Expiry date
         <input type="date" value={f.expiry} onChange={e => setF({ ...f, expiry: e.target.value })} />
       </label>
@@ -50,14 +64,16 @@ export default function ItemEditor({ item, history, onSave, onAdjust, onClose })
 
       <h3>Inventory adjustment</h3>
       <p>On hand: {describeStock(item)}</p>
-      <label>Quantity change (use minus to reduce)
-        <input type="number" value={a.change} onChange={e => setA({ ...a, change: e.target.value })} />
-      </label>
-      <label>Unit
-        <select value={a.unitName} onChange={e => setA({ ...a, unitName: e.target.value })}>
-          {item.units.map(u => <option key={u.name} value={u.name}>{u.name}</option>)}
-        </select>
-      </label>
+      <div className="grid2">
+        <label>Quantity change (minus to reduce)
+          <input type="number" value={a.change} onChange={e => setA({ ...a, change: e.target.value })} />
+        </label>
+        <label>Unit
+          <select value={a.unitName} onChange={e => setA({ ...a, unitName: e.target.value })}>
+            {item.units.map(u => <option key={u.name} value={u.name}>{u.name}</option>)}
+          </select>
+        </label>
+      </div>
       <label>Reason
         <select value={a.reason} onChange={e => setA({ ...a, reason: e.target.value })}>
           {REASONS.map(r => <option key={r} value={r}>{r}</option>)}
