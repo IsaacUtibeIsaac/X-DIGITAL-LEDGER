@@ -1,13 +1,14 @@
+
 const navMeta = {
-  Dashboard: ['▦', 'Overview'],
-  Sales: ['＋', 'Point of sale'],
-  Inventory: ['▤', 'Stock & products'],
-  Customers: ['♙', 'Customers'],
-  Suppliers: ['⇄', 'Suppliers'],
-  Requests: ['☷', 'Item requests'],
-  Receipts: ['▧', 'Receipts'],
-  Reports: ['▥', 'Reports'],
-  RAI: ['✦', 'Ledger assistant']
+  Dashboard: '▦',
+  Sales: '＋',
+  Inventory: '▤',
+  Customers: '♙',
+  Suppliers: '⇄',
+  Requests: '☷',
+  Receipts: '▧',
+  Reports: '▥',
+  RAI: '✦'
 }
 
 export default function BottomNav({
@@ -27,7 +28,7 @@ export default function BottomNav({
       </div>
 
       {names.map(name => {
-        const [icon, label] = navMeta[name] || ['•', name]
+        const icon = navMeta[name] || '•'
 
         return (
           <button
@@ -39,15 +40,14 @@ export default function BottomNav({
               onNavigate?.()
             }}
             aria-current={name === tab ? 'page' : undefined}
-            title={collapsed ? label : undefined}
+            title={collapsed ? name : undefined}
           >
             <span className="nav-icon" aria-hidden="true">
               {icon}
             </span>
 
             <span className="nav-label">
-              <span>{name}</span>
-              <small>{label}</small>
+              {name}
             </span>
           </button>
         )
