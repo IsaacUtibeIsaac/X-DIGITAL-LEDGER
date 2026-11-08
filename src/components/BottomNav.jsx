@@ -1,5 +1,5 @@
 
-const navMeta = {
+const navIcons = {
   Dashboard: '▦',
   Sales: '＋',
   Inventory: '▤',
@@ -16,21 +16,29 @@ export default function BottomNav({
   setTab,
   names,
   collapsed = false,
+  mobileOpen = false,
   onNavigate
 }) {
+  const navClass = [
+    'app-nav',
+    collapsed ? 'is-collapsed' : '',
+    mobileOpen ? 'mobile-open' : ''
+  ].filter(Boolean).join(' ')
+
   return (
-    <nav
-      className={`app-nav ${collapsed ? 'is-collapsed' : ''}`}
-      aria-label="Main navigation"
-    >
+    <nav className={navClass} aria-label="Main navigation">
+
+      <div className="nav-brand">
+        <span className="nav-brand-mark">DL</span>
+        <span className="nav-brand-name">Digital Ledger</span>
+      </div>
+
       <div className="nav-section-label">
         WORKSPACE
       </div>
 
-      {names.map(name => {
-        const icon = navMeta[name] || '•'
-
-        return (
+      <div className="nav-items">
+        {names.map(name => (
           <button
             key={name}
             type="button"
@@ -43,21 +51,20 @@ export default function BottomNav({
             title={collapsed ? name : undefined}
           >
             <span className="nav-icon" aria-hidden="true">
-              {icon}
+              {navIcons[name] || '•'}
             </span>
 
             <span className="nav-label">
               {name}
             </span>
           </button>
-        )
-      })}
+        ))}
+      </div>
 
       <div className="nav-footer-note">
-        Digital Ledger
-        <br />
         <span>Business workspace</span>
       </div>
+
     </nav>
   )
 }
