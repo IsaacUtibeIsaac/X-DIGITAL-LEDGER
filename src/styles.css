@@ -1,358 +1,108 @@
 
 /* =====================================
-   DIGITAL LEDGER RESPONSIVE NAVIGATION
+   DIGITAL LEDGER BRAND COLOUR RESTORATION
 ===================================== */
 
-.app-shell {
-  min-height: 100vh;
+:root {
+  --navy: #0b2a5b;
+  --gold: #c9a227;
+  --blue: #1d4ed8;
 }
 
+/* Sidebar */
 .app-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 42px;
-  width: 250px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 20px 12px;
-  padding-top: calc(20px + env(safe-area-inset-top));
   background: var(--navy);
-  z-index: 20;
-  transition: width 0.25s ease, transform 0.25s ease;
-}
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 48px;
-  padding: 0 10px;
-  margin-bottom: 28px;
-  color: white;
-  font-size: 17px;
-  font-weight: 700;
-  white-space: nowrap;
+  border-right: 1px solid #173d75;
 }
 
 .nav-brand-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
-  border-radius: 9px;
   background: var(--gold);
   color: var(--navy);
-  font-weight: 800;
 }
 
-.nav-section-label {
-  padding: 0 12px;
-  margin-bottom: 10px;
-  color: #94a3b8;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
-.nav-items {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
+/* Navigation items */
 .app-nav .nav-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  min-height: 46px;
-  flex: 0 0 auto;
-  padding: 10px 12px;
-  border: 0;
-  border-radius: 8px;
-  border-bottom: 0;
-  background: transparent;
-  color: #cbd5e1;
-  text-align: left;
-  font-size: 14px;
-  white-space: nowrap;
-  cursor: pointer;
+  color: #e2e8f0;
 }
 
 .app-nav .nav-item:hover {
-  background: rgba(255,255,255,0.08);
-  color: white;
+  background: #173d75;
+  color: #ffffff;
 }
 
 .app-nav .nav-item.active {
-  background: rgba(201,162,39,0.18);
-  color: #f5c542;
-  border-bottom: 0;
-  font-weight: 700;
+  background: var(--gold);
+  color: var(--navy);
+  border-left: 4px solid #ffffff;
+  font-weight: 800;
 }
 
 .nav-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  flex: 0 0 24px;
-  font-size: 20px;
+  color: inherit;
 }
 
-.nav-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.nav-footer-note {
-  margin-top: auto;
-  padding: 20px 12px 8px;
-  color: #94a3b8;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-/* Main workspace */
-
-.app-main {
-  min-height: 100vh;
-  margin-left: 250px;
-  padding-bottom: 50px;
-  transition: margin-left 0.25s ease;
-}
-
+/* Workspace header */
 .app-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 8;
-  min-height: 64px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 0 22px;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-bottom: 2px solid var(--gold);
 }
 
 .app-topbar-title {
   color: var(--navy);
-  font-size: 18px;
-  font-weight: 700;
 }
 
-.app-topbar-role {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  color: #64748b;
-  font-size: 13px;
+/* Primary buttons */
+button {
+  background: var(--navy);
+  color: #ffffff;
 }
 
-.app-topbar-role select {
-  width: auto;
-  margin: 0;
-  padding: 6px 10px;
-  font-size: 13px;
+button:hover:not(:disabled) {
+  filter: brightness(1.12);
 }
 
-.desktop-nav-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border-radius: 7px;
-  background: #f1f5f9;
+button.big {
+  background: var(--gold);
   color: var(--navy);
-  font-size: 20px;
-  cursor: pointer;
 }
 
-.app-screen {
-  min-width: 0;
+/* Important interactive elements */
+.desktop-nav-toggle {
+  background: #eaf0fb;
+  color: var(--navy);
+  border: 1px solid #cbd5e1;
 }
-
-.app-screen .screen {
-  padding: 24px 20px 80px;
-}
-
-/* Collapsed desktop sidebar */
-
-.app-nav.is-collapsed {
-  width: 76px;
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-.app-nav.is-collapsed .nav-brand {
-  justify-content: center;
-  padding: 0;
-}
-
-.app-nav.is-collapsed .nav-brand-name,
-.app-nav.is-collapsed .nav-section-label,
-.app-nav.is-collapsed .nav-label,
-.app-nav.is-collapsed .nav-footer-note {
-  display: none;
-}
-
-.app-nav.is-collapsed .nav-item {
-  justify-content: center;
-  padding: 10px 0;
-}
-
-.app-main.sidebar-collapsed {
-  margin-left: 76px;
-}
-
-/* Mobile controls */
 
 .mobile-menu-toggle {
-  display: none;
+  background: var(--navy);
+  color: var(--gold);
+  border: 1px solid var(--gold);
 }
 
-.mobile-nav-backdrop {
-  display: none;
+/* Existing dashboard cards and indicators */
+.stat {
+  border-left-color: var(--gold);
 }
 
-/* Permanent Winfieldtec footer */
+.statv,
+.totalline,
+.msgq {
+  color: var(--navy);
+}
 
+.barfill {
+  background: var(--gold);
+}
+
+.chip {
+  color: var(--navy);
+  border-color: var(--gold);
+}
+
+/* Branding footer */
 .powered {
-  z-index: 60;
-  min-height: 32px;
-  box-sizing: border-box;
-}
-
-/* Tablet */
-
-@media (min-width: 701px) and (max-width: 1024px) {
-  .app-nav {
-    width: 220px;
-  }
-
-  .app-main {
-    margin-left: 220px;
-  }
-
-  .app-main.sidebar-collapsed {
-    margin-left: 76px;
-  }
-
-  .app-topbar {
-    padding: 0 16px;
-  }
-}
-
-/* Mobile */
-
-@media (max-width: 700px) {
-  .app-main,
-  .app-main.sidebar-collapsed {
-    margin-left: 0;
-  }
-
-  .app-nav,
-  .app-nav.is-collapsed {
-    top: 0;
-    bottom: 42px;
-    left: 0;
-    width: min(82vw, 280px);
-    padding: 20px 12px;
-    padding-top: calc(20px + env(safe-area-inset-top));
-    transform: translateX(-105%);
-    z-index: 50;
-  }
-
-  .app-nav.mobile-open {
-    transform: translateX(0);
-  }
-
-  .app-nav.is-collapsed .nav-brand-name,
-  .app-nav.is-collapsed .nav-section-label,
-  .app-nav.is-collapsed .nav-label,
-  .app-nav.is-collapsed .nav-footer-note {
-    display: initial;
-  }
-
-  .app-nav.is-collapsed .nav-brand {
-    justify-content: flex-start;
-    padding: 0 10px;
-  }
-
-  .app-nav.is-collapsed .nav-section-label {
-    display: block;
-  }
-
-  .app-nav.is-collapsed .nav-item {
-    justify-content: flex-start;
-    padding: 10px 12px;
-  }
-
-  .mobile-menu-toggle {
-    position: fixed;
-    top: calc(10px + env(safe-area-inset-top));
-    left: 12px;
-    z-index: 70;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border-radius: 8px;
-    background: var(--navy);
-    color: white;
-    font-size: 21px;
-  }
-
-  .mobile-nav-backdrop {
-    position: fixed;
-    display: block;
-    inset: 0 0 42px;
-    z-index: 40;
-    width: 100%;
-    height: auto;
-    padding: 0;
-    border-radius: 0;
-    background: rgba(0,0,0,0.45);
-  }
-
-  .desktop-nav-toggle {
-    display: none;
-  }
-
-  .app-topbar {
-    min-height: 60px;
-    padding-left: 62px;
-    padding-right: 10px;
-  }
-
-  .app-topbar-title {
-    font-size: 16px;
-  }
-
-  .app-topbar-role {
-    gap: 4px;
-  }
-
-  .app-topbar-role span {
-    display: none;
-  }
-
-  .app-topbar-role select {
-    max-width: 110px;
-  }
-
-  .app-screen .screen {
-    padding: 18px 12px 80px;
-  }
+  background: #ffffff;
+  color: var(--navy);
+  border-top: 2px solid var(--gold);
+  font-weight: 600;
 }
