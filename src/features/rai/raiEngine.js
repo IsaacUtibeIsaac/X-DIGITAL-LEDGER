@@ -321,10 +321,14 @@ const HELP = {
   ]
 }
 
-function helpAnswer(role, q) {
+function helpLookup(role, q) {
   for (const [re, text] of HELP[role] || []) {
     if (re.test(q)) return [text]
   }
+  return null
+}
+
+function helpFallback(role) {
   return [`As ${role} you can use: ${TABS[role]}. Ask me how to do something in any of them.`]
 }
 
@@ -361,20 +365,21 @@ export function ask(role, question) {
   const q = question.toLowerCase().trim()
 
   if (/\b(how (do|can|to|should)|where (do|can)|help|guide|steps?)\b/.test(q)) {
-    return { lines: helpAnswer(role, q) }
+    const h = helpLookup(role, q)
+    return h ? { lines: h, matched: true } : { lines: helpFallback(role), matched: false }
   }
 
   for (const intent of INTENTS) {
     if (intent.test.test(q)) {
       if (!intent.roles.includes(role)) {
-        return { lines: [`That information is only available to the ${intent.roles.join(' or ')} role, so I can't share it from the ${role} role.`] }
+        return { lines: [`That information is only available to the ${intent.roles.join(' or ')} role, so I can't share it from the ${role} role.`], matched: true }
       }
-      return { lines: intent.run(q, role) }
+      return { lines: intent.run(q, role), matched: true }
     }
   }
 
   const items = findItems(q)
-  if (items.length) return { lines: itemInfo(role, items) }
+  if (items.length) return { lines: itemInfo(role, items), matched: true }
 
-  return { lines: ["I didn't understand that. Try one of the suggestions above, or ask how to do something."] }
+  return { lines: ["I didn't understand that. Try one of the suggestions above, or ask how to do something."], matched: false }
 }
