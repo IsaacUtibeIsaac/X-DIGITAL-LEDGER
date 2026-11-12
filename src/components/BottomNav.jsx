@@ -16,6 +16,7 @@ const navIcons = {
   Requests: '☷',
   Receipts: '▧',
   Reports: '▥',
+  Staff: '☺',
   RAI: '✦'
 }
 
