@@ -4,6 +4,7 @@ import { supabase, supabaseReady } from './lib/supabase.js'
 import { ROLES, getRole, setRole } from './lib/role.js'
 import BottomNav from './components/BottomNav.jsx'
 import PoweredBy from './components/PoweredBy.jsx'
+import RaiBanner from './components/RaiBanner.jsx'
 import Login from './screens/Login.jsx'
 import Home from './screens/Home.jsx'
 import Sell from './screens/Sell.jsx'
@@ -163,6 +164,8 @@ export default function App() {
               )}
             </div>
           </header>
+
+          <RaiBanner role={role} />
 
           <main className="app-screen">
             <Screen key={role + current} />
