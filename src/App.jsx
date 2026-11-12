@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { supabase, supabaseReady } from './lib/supabase.js'
 import { ROLES, getRole, setRole } from './lib/role.js'
