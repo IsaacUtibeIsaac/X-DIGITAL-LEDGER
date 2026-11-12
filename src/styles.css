@@ -709,6 +709,38 @@ button.small {
   flex: 1;
 }
 
+.rai-action {
+  margin: 8px 0;
+  padding: 8px 10px;
+  color: var(--navy);
+  background: #fff7e0;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+}
+
+.rai-action .rai-row {
+  margin: 6px 0 0;
+}
+
+.rai-action.done {
+  background: #ecfdf5;
+  border-color: #86efac;
+}
+
+.rai-action.failed {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.rai-action.cancelled {
+  opacity: 0.7;
+}
+
+.rai-result {
+  margin-top: 6px;
+  font-weight: 600;
+}
+
 /* ---------- 10. Phone layout ---------- */
 @media (max-width: 800px) {
   .app-nav {
