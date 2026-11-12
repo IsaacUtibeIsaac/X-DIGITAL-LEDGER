@@ -2,6 +2,7 @@ import { loadProducts, describeStock, inventoryValue } from '../inventory/produc
 import { loadSales, loadVoids, goodsTotal } from '../sales/saleStore.js'
 import { loadRequests } from '../requests/requestStore.js'
 import { RECEIPT_FEE } from '../settings/settingsStore.js'
+import { loadTasks, todayStr } from './taskStore.js'
 
 // RAI v1: Role-Aware Intelligence.
 // All numbers are calculated by plain code from recorded data.
@@ -249,6 +250,24 @@ function inventoryWorth() {
   return [`Inventory value at cost price: ${naira(inventoryValue(loadProducts()))}.`]
 }
 
+// ---------- tasks and reminders ----------
+
+function taskLines(role) {
+  if (role === 'Cashier') {
+    return ['Your reminders appear at the top of the screen. I will remind you to charge your phone when the battery drops below 25%.']
+  }
+  const open = loadTasks(role).filter(t => !t.done)
+  if (!open.length) return ['You have no open tasks. Add one in the My tasks box on this screen.']
+  const today = todayStr()
+  const when = t => {
+    if (!t.due) return ''
+    if (t.due < today) return ' (overdue, was due ' + t.due + ')'
+    if (t.due === today) return ' (due today)'
+    return ' (due ' + t.due + ')'
+  }
+  return [`You have ${open.length} open task(s):`, ...open.map(t => '• ' + t.text + when(t))]
+}
+
 // ---------- item lookup ----------
 
 function findItems(q) {
@@ -315,6 +334,7 @@ const ALL = ['Cashier', 'Manager', 'Owner']
 const STOCK_STAFF = ['Manager', 'Owner']
 
 const INTENTS = [
+  { test: /\b(tasks?|reminders?|to-?do)\b/, roles: ALL, run: (q, role) => taskLines(role) },
   { test: /\bmy (sales|takings|total|sale)\b/, roles: ['Cashier'], run: () => mySales() },
   { test: /(profit|margin)/, roles: ['Owner'], run: q => profit(q) },
   { test: /(cashier|staff|employee).*(perform|sales|record|activity)|performance/, roles: ['Owner'], run: () => cashierPerformance() },
@@ -330,9 +350,9 @@ const INTENTS = [
 ]
 
 const SUGGESTIONS = {
-  Cashier: ['How do I void a sale?', 'How do I scan items?', 'Is rice in stock?', 'My sales today'],
-  Manager: ['What should I restock?', 'Which items are slow?', 'What is near expiry?', 'Best selling items', 'How do I add an item?'],
-  Owner: ['Sales this week', 'Gross profit today', 'Best selling items', 'Cashier performance', 'What should I restock?', 'How do I set the receipt minimum?']
+  Cashier: ['How do I void a sale?', 'How do I scan items?', 'Is rice in stock?', 'My sales today', 'My reminders'],
+  Manager: ['What should I restock?', 'Which items are slow?', 'What is near expiry?', 'Best selling items', 'My tasks', 'How do I add an item?'],
+  Owner: ['Sales this week', 'Gross profit today', 'Best selling items', 'Cashier performance', 'What should I restock?', 'My tasks', 'How do I set the receipt minimum?']
 }
 
 export const suggestions = role => SUGGESTIONS[role] || []
