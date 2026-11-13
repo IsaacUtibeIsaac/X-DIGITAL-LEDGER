@@ -26,8 +26,9 @@ export default function ReceiptSettings() {
     <div>
       <h3>Receipt settings</h3>
       <p>
-        System charge: ₦{RECEIPT_FEE} is added to the customer's bill as its own line whenever a receipt is issued.
-        It is not shop revenue. It is owed to Digital Ledger (test period, not yet collected).
+        Each receipt issued costs ₦{RECEIPT_FEE}, paid from your receipt wallet (see the Wallet tab).
+        The system charge below adds the same ₦{RECEIPT_FEE} to the customer's bill as its own line, so the customer covers it.
+        Turn it off if you want to pay the fee yourself. It is never shop revenue.
       </p>
       <p>
         <button onClick={toggleCharge}>System charge: {charge ? 'ON' : 'OFF'}</button>
