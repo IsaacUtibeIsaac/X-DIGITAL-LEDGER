@@ -2,7 +2,9 @@ const KEY = 'dl_settings'
 
 export const RECEIPT_FEE = 50
 
-const defaults = { minReceiptPrice: 0, chargeOnReceipt: true }
+// emptyWalletRule: what happens at the till when the receipt wallet cannot pay the fee
+//   'no_receipt' = sales continue, receipts switch off   |   'debt' = receipts continue, the fee is owed
+const defaults = { minReceiptPrice: 0, chargeOnReceipt: true, emptyWalletRule: 'no_receipt' }
 
 export function loadSettings() {
   try {
