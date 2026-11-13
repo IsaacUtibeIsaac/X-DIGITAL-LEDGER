@@ -827,6 +827,33 @@ button.small {
   border-bottom: 2px solid var(--blue);
 }
 
+/* ---------- 9c. Wallet ---------- */
+.wallet-balance {
+  margin: 4px 0 8px;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.small-code {
+  font-size: 13px;
+  letter-spacing: 0;
+  word-break: break-all;
+}
+
+.rule-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 14px;
+  color: var(--navy);
+}
+
+.rule-option input {
+  margin-top: 4px;
+}
+
 /* ---------- 10. Phone layout ---------- */
 @media (max-width: 800px) {
   .app-nav {
@@ -905,4 +932,20 @@ button.small {
     max-width: none;
     padding: 0;
   }
+}
+
+/* ---------- XDL status labels ---------- */
+.pill.ok {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.pill.warn {
+  background: #fff7e0;
+  color: var(--navy);
+}
+
+.pill.bad {
+  background: #fef2f2;
+  color: #b91c1c;
 }
