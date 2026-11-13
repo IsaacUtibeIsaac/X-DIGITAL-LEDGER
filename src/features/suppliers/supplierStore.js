@@ -1,3 +1,4 @@
+import { newId } from '../../lib/newId.js'
 const KEY = 'dl_suppliers'
 
 function read() {
@@ -18,7 +19,7 @@ export const loadSuppliers = read
 export function addSupplier(s) {
   if (!s.name.trim()) return read()
   return write([{
-    id: Date.now().toString(), name: s.name.trim(),
+    id: newId(), name: s.name.trim(),
     phone: s.phone.trim(), email: s.email.trim(), note: s.note.trim()
   }, ...read()])
 }
