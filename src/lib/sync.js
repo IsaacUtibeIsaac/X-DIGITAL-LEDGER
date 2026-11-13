@@ -28,7 +28,9 @@ export const WRITE_ACCESS = {
   Cashier: ['products', 'sales', 'voids', 'requests', 'customers']
 }
 
-const STATE_KEY = 'dl_sync_state'
+export const STATE_KEY = 'dl_sync_state'
+export const FEE_QUEUE_KEY = 'dl_fee_queue'
+export const WALLET_KEY = 'dl_wallet'
 const OVERLAP_MS = 10000
 const CHUNK = 200
 const PAGE = 1000
@@ -87,6 +89,8 @@ export function createSync(client, storage) {
   function wipeData() {
     COLLECTIONS.forEach(c => store.removeItem(c.key))
     store.removeItem('dl_tasks')
+    store.removeItem(FEE_QUEUE_KEY)
+    store.removeItem(WALLET_KEY)
     store.removeItem(STATE_KEY)
   }
 
@@ -127,7 +131,7 @@ export function createSync(client, storage) {
       if (!(WRITE_ACCESS[role] || []).includes(def.name)) continue
       n += changesFor(def, state).length
     }
-    return n
+    return n + (read(FEE_QUEUE_KEY) || []).length
   }
 
   async function pushCollection(def, state) {
@@ -242,6 +246,36 @@ export function createSync(client, storage) {
     return { changed }
   }
 
+  // Receipt fees: each issued receipt is queued on the phone and charged to the wallet by the
+  // server. The server ignores a sale it has already charged, so retrying is always safe.
+  async function flushFees(state) {
+    const queue = (read(FEE_QUEUE_KEY) || []).map(String)
+    const done = []
+    let balance = null
+    let error = ''
+
+    for (const saleId of queue) {
+      const { data, error: e } = await client.rpc('charge_receipt_fee', { p_business: state.businessId, p_sale: saleId })
+      if (e) { error = e.message || 'Could not charge the receipt fee'; break }
+      done.push(saleId)
+      if (data !== null && data !== undefined) balance = Number(data)
+    }
+
+    if (done.length) {
+      const doneSet = new Set(done)
+      write(FEE_QUEUE_KEY, (read(FEE_QUEUE_KEY) || []).map(String).filter(id => !doneSet.has(id)))
+    }
+
+    if (!error && balance === null) {
+      const r = await client.rpc('wallet_balance', { p_business: state.businessId })
+      if (r.error) error = r.error.message || 'Could not read the wallet'
+      else if (r.data !== null && r.data !== undefined) balance = Number(r.data)
+    }
+
+    if (balance !== null && Number.isFinite(balance)) write(WALLET_KEY, { balance, at: Date.now() })
+    return { error, charged: done.length }
+  }
+
   async function runOnce(role) {
     const state = loadState()
     if (!state) return { ok: false, error: 'This phone is not set up for syncing yet.' }
@@ -255,6 +289,8 @@ export function createSync(client, storage) {
     }
     const pulled = await pullAll(state)
     if (pulled.error) errors.push(pulled.error)
+    const fees = await flushFees(state)
+    if (fees.error) errors.push(fees.error)
     if (!errors.length) state.lastSync = new Date().toISOString()
     saveState(state)
     return { ok: errors.length === 0, error: errors[0] || '', pushed, changed: Boolean(pulled.changed) }
