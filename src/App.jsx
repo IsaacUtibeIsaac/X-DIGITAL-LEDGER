@@ -18,6 +18,8 @@ import Requests from './screens/Requests.jsx'
 import Receipts from './screens/Receipts.jsx'
 import Reports from './screens/Reports.jsx'
 import Staff from './screens/Staff.jsx'
+import Wallet from './screens/Wallet.jsx'
+import Xdl from './screens/Xdl.jsx'
 import Rai from './screens/Rai.jsx'
 
 const screens = {
@@ -30,13 +32,15 @@ const screens = {
   Receipts,
   Reports,
   Staff,
+  Wallet,
+  XDL: Xdl,
   RAI: Rai
 }
 
 const tabsByRole = {
   Owner: [
     'Dashboard', 'Inventory', 'Customers', 'Suppliers',
-    'Requests', 'Receipts', 'Reports', 'Staff', 'RAI'
+    'Requests', 'Receipts', 'Reports', 'Wallet', 'Staff', 'RAI'
   ],
   Manager: [
     'Dashboard', 'Inventory', 'Suppliers',
@@ -75,6 +79,7 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState({ state: 'idle' })
   const [staleData, setStaleData] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -173,6 +178,19 @@ export default function App() {
     return () => clearInterval(id)
   }, [userId, member.status])
 
+  // 5. Winfieldtec staff get the XDL screen
+  useEffect(() => {
+    if (TEST_MODE || !supabase || !businessId) {
+      setIsAdmin(false)
+      return
+    }
+    let live = true
+    supabase.rpc('is_platform_admin').then(({ data, error }) => {
+      if (live) setIsAdmin(!error && data === true)
+    })
+    return () => { live = false }
+  }, [businessId])
+
   function changeRole(event) {
     const newRole = event.target.value
 
@@ -180,6 +198,17 @@ export default function App() {
     setRoleState(newRole)
     setTab(tabsByRole[newRole][0])
     setMobileOpen(false)
+
+    // Sales and changes made while the owner acts as someone else are labelled as such.
+    if (!TEST_MODE && member.status === 'ready') {
+      const base = member.data.display_name || 'Owner'
+      try {
+        localStorage.setItem(
+          'dl_cashier_name',
+          newRole === member.data.role ? base : `${base} (Owner as ${newRole})`
+        )
+      } catch {}
+    }
   }
 
   async function signOut() {
@@ -196,7 +225,8 @@ export default function App() {
   }
 
   function renderShell() {
-    const names = tabsByRole[role]
+    const base = tabsByRole[role]
+    const names = !TEST_MODE && isAdmin && role === 'Owner' ? [...base, 'XDL'] : base
     const current = names.includes(tab) ? tab : names[0]
     const Screen = screens[current]
     const title = !TEST_MODE && member.status === 'ready' && member.data.business_name
@@ -274,7 +304,20 @@ export default function App() {
                     status={syncStatus}
                     onClick={() => syncRef.current && syncRef.current.now()}
                   />
-                  <span>{role}</span>
+                  {memberRole === 'Owner' ? (
+                    <>
+                      <span>Viewing as</span>
+                      <select value={role} onChange={changeRole}>
+                        {ROLES.map(item => (
+                          <option key={item} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  ) : (
+                    <span>{role}</span>
+                  )}
                   <button type="button" className="small" onClick={signOut}>Sign out</button>
                 </>
               )}
