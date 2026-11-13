@@ -1,3 +1,4 @@
+import { newId } from '../../lib/newId.js'
 const KEY = 'dl_products'
 const ADJ_KEY = 'dl_adjustments'
 
@@ -41,7 +42,7 @@ export function addProduct(f) {
   }
   const stockUnit = units.find(u => u.name === f.stockUnit) || units[0]
   const item = {
-    id: Date.now().toString(),
+    id: newId(),
     name: f.name.trim(),
     brand: f.brand.trim(),
     category: (f.category || '').trim(),
@@ -142,7 +143,7 @@ export function adjustQuantity(id, a) {
   try {
     localStorage.setItem(ADJ_KEY, JSON.stringify([
       {
-        id: Date.now().toString(), itemId: id, itemName: p.name,
+        id: newId(), itemId: id, itemName: p.name,
         change: actual, unit: p.baseUnit, reason: a.reason,
         note: a.note || '', date: new Date().toISOString()
       },
