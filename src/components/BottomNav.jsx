@@ -17,6 +17,8 @@ const navIcons = {
   Receipts: '▧',
   Reports: '▥',
   Staff: '☺',
+  Wallet: '₦',
+  XDL: '◈',
   RAI: '✦'
 }
 
