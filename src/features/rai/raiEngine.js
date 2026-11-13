@@ -242,7 +242,8 @@ function receiptFees() {
   const charged = valid.reduce((t, s) => t + (s.fee || 0), 0)
   return [
     `Receipts issued: ${issued}.`,
-    `System charges added to customers' bills: ${naira(charged)}. This is not shop revenue. It is owed to Digital Ledger (test period, not yet collected).`
+    `Receipt fees (₦50 each) are paid from your receipt wallet. See the Wallet tab for the balance.`,
+    `System charges added to customers' bills: ${naira(charged)}. This is not shop revenue.`
   ]
 }
 
