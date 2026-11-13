@@ -1,6 +1,8 @@
+import { newId } from '../../lib/newId.js'
 import { loadProducts, changeQuantities } from '../inventory/productStore.js'
 import { RECEIPT_FEE, loadSettings } from '../settings/settingsStore.js'
 import { loadBusiness } from '../business/businessStore.js'
+import { receiptsAllowed, queueFee } from '../wallet/walletStore.js'
 
 const SALES = 'dl_sales'
 const VOIDS = 'dl_voids'
@@ -66,8 +68,10 @@ export function recordSale(lines, receiptOn, cashier, paid) {
   if (problem) return { error: problem }
   const items = loadProducts()
   const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0)
-  const receiptIssued = receiptOn && lines.some(l => l.receipt)
-  const fee = previewCharge(lines, receiptOn)
+  const walletOk = receiptsAllowed()
+  const on = receiptOn && walletOk.allowed
+  const receiptIssued = on && lines.some(l => l.receipt)
+  const fee = previewCharge(lines, on)
   const total = subtotal + fee
   const amountPaid = paid === '' || paid === undefined ? total : Number(paid)
   if (!(amountPaid >= total)) return { error: 'Amount paid is less than the grand total' }
@@ -85,12 +89,13 @@ export function recordSale(lines, receiptOn, cashier, paid) {
   }
 
   const sale = {
-    id: Date.now().toString(),
+    id: newId(),
     receiptNo: sales.length + 1,
     trackingId: makeTrackingId(sales),
     date: new Date().toISOString(),
     cashier,
-    receiptOn,
+    receiptOn: on,
+    walletBlocked: Boolean(receiptOn && !walletOk.allowed),
     receiptIssued,
     subtotal,
     fee,
@@ -101,6 +106,7 @@ export function recordSale(lines, receiptOn, cashier, paid) {
     change: amountPaid - total
   }
   write(SALES, [sale, ...sales])
+  if (receiptIssued) queueFee(sale.id)
   const used = baseUsed(lines)
   changeQuantities(Object.keys(used).map(id => ({ id, baseQty: -used[id] })))
   return { sale }
@@ -110,7 +116,7 @@ export function voidSale(saleId, reason) {
   const sale = loadSales().find(s => s.id === saleId)
   if (!sale || loadVoids().some(v => v.saleId === saleId)) return false
   write(VOIDS, [
-    { id: Date.now().toString(), saleId, reason, date: new Date().toISOString() },
+    { id: newId(), saleId, reason, date: new Date().toISOString() },
     ...loadVoids()
   ])
   const used = baseUsed(sale.lines)
