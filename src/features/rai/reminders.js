@@ -1,5 +1,6 @@
 import { loadProducts, lowStock } from '../inventory/productStore.js'
 import { loadTasks, todayStr } from './taskStore.js'
+import { availableBalance, FEE } from '../wallet/walletStore.js'
 
 export const BATTERY_LIMIT = 25
 
@@ -45,6 +46,23 @@ export function getReminders(role, battery) {
         id: 'battery',
         level: 'warn',
         text: `Your phone battery is at ${battery.level}%. Please put it on charge so sales are not interrupted.`
+      })
+    }
+  }
+
+  if (role === 'Owner') {
+    const bal = availableBalance()
+    if (bal !== null && bal < FEE) {
+      out.push({
+        id: 'wallet-empty',
+        level: 'warn',
+        text: `Your receipt wallet is empty (₦${Math.round(bal).toLocaleString()}). Top it up from the Wallet tab so receipts keep working.`
+      })
+    } else if (bal !== null && bal < FEE * 10) {
+      out.push({
+        id: 'wallet-low',
+        level: 'warn',
+        text: `Your receipt wallet is low (₦${Math.round(bal).toLocaleString()}). Top it up soon.`
       })
     }
   }
