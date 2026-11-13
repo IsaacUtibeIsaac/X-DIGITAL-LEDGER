@@ -1,3 +1,4 @@
+import { newId } from '../../lib/newId.js'
 const KEY = 'dl_requests'
 
 function read() {
@@ -18,7 +19,7 @@ export const loadRequests = read
 export function addRequest(item, customer) {
   if (!item.trim()) return read()
   return write([{
-    id: Date.now().toString(), item: item.trim(), customer: customer.trim(),
+    id: newId(), item: item.trim(), customer: customer.trim(),
     date: new Date().toISOString(), done: false
   }, ...read()])
 }
