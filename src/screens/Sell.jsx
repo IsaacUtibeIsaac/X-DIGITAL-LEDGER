@@ -5,6 +5,7 @@ import ReceiptView from '../features/sales/ReceiptView.jsx'
 import BarcodeScanner from '../features/scan/BarcodeScanner.jsx'
 import VoiceButton from '../features/scan/VoiceButton.jsx'
 import { wantsReceipt } from '../features/settings/settingsStore.js'
+import { receiptsAllowed } from '../features/wallet/walletStore.js'
 import { getRole } from '../lib/role.js'
 
 const NAME_KEY = 'dl_cashier_name'
@@ -133,9 +134,11 @@ export default function Sell() {
         ) : (
           <p>
             Sale recorded. Total ₦{lastSale.total.toLocaleString()}.{' '}
-            {lastSale.receiptOn
-              ? 'No receipt: items are below the receipt minimum.'
-              : 'Receipt was turned off.'}
+            {lastSale.walletBlocked
+              ? 'No receipt: the receipt wallet is empty. Ask the owner to top up.'
+              : lastSale.receiptOn
+                ? 'No receipt: items are below the receipt minimum.'
+                : 'Receipt was turned off.'}
           </p>
         )}
         <p className="noprint"><button className="big" onClick={() => setLastSale(null)}>New sale</button></p>
@@ -145,7 +148,9 @@ export default function Sell() {
 
   const suggestions = text.trim() ? searchProducts(items, text).slice(0, 6) : []
   const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0)
-  const fee = previewCharge(lines, receiptOn)
+  const walletOk = receiptsAllowed()
+  const receiptActive = receiptOn && walletOk.allowed
+  const fee = previewCharge(lines, receiptActive)
   const total = subtotal + fee
 
   return (
@@ -207,12 +212,13 @@ export default function Sell() {
 
       <div className="payrow">
         <button
-          className={'rtoggle' + (receiptOn ? ' on' : '')}
+          className={'rtoggle' + (receiptActive ? ' on' : '')}
           aria-label="Receipt on or off"
           onClick={() => setReceiptOn(!receiptOn)}
         >🧾</button>
         <button className="big" onClick={complete}>Complete sale</button>
       </div>
+      {!walletOk.allowed && <p className="rai-lock">{walletOk.reason}</p>}
 
       <h3>Recent sales</h3>
       {sales.length === 0 && <p>None yet.</p>}
