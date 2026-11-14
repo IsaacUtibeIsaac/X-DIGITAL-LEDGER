@@ -10,19 +10,25 @@ function buildLog() {
   const rows = []
   loadVoids().forEach(v => {
     const s = sales.find(x => x.id === v.saleId)
+    const cashier = s && s.cashier ? 'sold by ' + s.cashier : ''
     rows.push({
       id: 'v' + v.id,
       at: v.date,
-      text: `Sale cancelled${s && s.cashier ? ' (cashier: ' + s.cashier + ')' : ''}`,
-      detail: v.reason || ''
+      text: 'Sale cancelled',
+      detail: [v.reason, cashier, v.by ? 'cancelled by ' + v.by : ''].filter(Boolean).join(' · ')
     })
   })
   loadAdjustments().forEach(a => {
+    let text
+    if (a.moved) text = `${a.reason}: ${a.itemName}, ${a.moved} ${a.unit}`
+    else if (a.reason === 'Item edited') text = `Item edited: ${a.itemName}`
+    else text = `Stock change: ${a.itemName} ${a.change > 0 ? '+' : ''}${a.change} ${a.unit}`
     rows.push({
       id: 'a' + a.id,
       at: a.date,
-      text: `Stock change: ${a.itemName} ${a.change > 0 ? '+' : ''}${a.change} ${a.unit}`,
-      detail: [a.reason, a.note].filter(Boolean).join(' · ')
+      text,
+      detail: [a.moved || a.reason === 'Item edited' ? '' : a.reason, a.note, a.by ? 'by ' + a.by : '']
+        .filter(Boolean).join(' · ')
     })
   })
   return rows.sort((x, y) => new Date(y.at) - new Date(x.at)).slice(0, 100)
@@ -67,7 +73,7 @@ export default function Security({ businessId }) {
       {note && <p>{note}</p>}
 
       <h3>Activity log</h3>
-      {log.length === 0 && <p>No cancelled sales or stock changes recorded yet.</p>}
+      {log.length === 0 && <p>No cancelled sales, stock changes or item edits recorded yet.</p>}
       {log.map(r => (
         <div key={r.id} className="row">
           <span>{r.text}{r.detail ? ` · ${r.detail}` : ''}</span>
