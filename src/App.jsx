@@ -20,7 +20,6 @@ import Receipts from './screens/Receipts.jsx'
 import Reports from './screens/Reports.jsx'
 import Staff from './screens/Staff.jsx'
 import Wallet from './screens/Wallet.jsx'
-import Xdl from './screens/Xdl.jsx'
 import Rai from './screens/Rai.jsx'
 import Security from './screens/Security.jsx'
 import KycStore from './screens/KycStore.jsx'
@@ -41,7 +40,6 @@ const screens = {
   Wallet,
   Security,
   'KYC Store': KycStore,
-  XDL: Xdl,
   RAI: Rai
 }
 
@@ -88,7 +86,6 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState({ state: 'idle' })
   const [staleData, setStaleData] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
-  const [isAdmin, setIsAdmin] = useState(false)
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -213,19 +210,6 @@ export default function App() {
     return () => clearInterval(id)
   }, [userId, member.status])
 
-  // 5. Winfieldtec staff get the XDL screen
-  useEffect(() => {
-    if (TEST_MODE || !supabase || !businessId) {
-      setIsAdmin(false)
-      return
-    }
-    let live = true
-    supabase.rpc('is_platform_admin').then(({ data, error }) => {
-      if (live) setIsAdmin(!error && data === true)
-    })
-    return () => { live = false }
-  }, [businessId])
-
   function changeRole(event) {
     const newRole = event.target.value
 
@@ -272,7 +256,7 @@ export default function App() {
 
   function renderShell() {
     const base = tabsByRole[role]
-    const names = !TEST_MODE && isAdmin && role === 'Owner' ? [...base, 'XDL'] : base
+    const names = base
     const current = names.includes(tab) ? tab : names[0]
     const Screen = screens[current]
     const title = !TEST_MODE && member.status === 'ready' && member.data.business_name
