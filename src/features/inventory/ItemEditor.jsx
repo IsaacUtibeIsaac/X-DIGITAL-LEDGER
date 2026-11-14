@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { describeStock } from './productStore.js'
+import { describeStock, describeQty, stockSplit } from './productStore.js'
+import ImageCapture from '../scan/ImageCapture.jsx'
+import { MAX_PHOTOS_PER_ITEM } from '../scan/imageMatch.js'
 
 const REASONS = ['Purchase', 'Damaged', 'Expired', 'Stocktake correction', 'Other']
 
-export default function ItemEditor({ item, history, onSave, onAdjust, onClose }) {
+export default function ItemEditor({ item, history, onSave, onAdjust, onMove, onPhoto, onClearPhotos, onClose }) {
   const [f, setF] = useState({
     name: item.name,
     brand: item.brand,
@@ -17,6 +19,25 @@ export default function ItemEditor({ item, history, onSave, onAdjust, onClose })
   const [a, setA] = useState({
     unitName: item.units[0].name, change: '', reason: 'Purchase', cost: '', note: ''
   })
+
+  const [m, setM] = useState({ direction: 'toStore', unitName: item.units[0].name, qty: '', note: '' })
+  const [moveMsg, setMoveMsg] = useState('')
+  const split = stockSplit(item)
+  const photoCount = (item.imgSigs || []).length
+
+  function doMove() {
+    const unit = item.units.find(u => u.name === m.unitName) || item.units[0]
+    const q = (Number(m.qty) || 0) * unit.size
+    const have = m.direction === 'toStore' ? split.shelf : split.store
+    if (q <= 0) { setMoveMsg('Enter how much to move.'); return }
+    if (q > have) {
+      setMoveMsg(`Only ${describeQty(item, have)} on the ${m.direction === 'toStore' ? 'shelf' : 'store room'}.`)
+      return
+    }
+    setMoveMsg('')
+    onMove(m)
+    setM({ ...m, qty: '', note: '' })
+  }
 
   function setPrice(i, v) {
     const prices = [...f.prices]
@@ -91,12 +112,46 @@ export default function ItemEditor({ item, history, onSave, onAdjust, onClose })
         Record adjustment
       </button>
 
+      <h3>Move stock</h3>
+      <p>Shelf: {describeQty(item, split.shelf)} · Store room: {describeQty(item, split.store)}</p>
+      <label>Direction
+        <select value={m.direction} onChange={ev => setM({ ...m, direction: ev.target.value })}>
+          <option value="toStore">Shelf to store room</option>
+          <option value="toShelf">Store room to shelf</option>
+        </select>
+      </label>
+      <div className="grid2">
+        <label>Quantity
+          <input type="number" value={m.qty} onChange={ev => setM({ ...m, qty: ev.target.value })} />
+        </label>
+        <label>Unit
+          <select value={m.unitName} onChange={ev => setM({ ...m, unitName: ev.target.value })}>
+            {item.units.map(u => <option key={u.name} value={u.name}>{u.name}</option>)}
+          </select>
+        </label>
+      </div>
+      <label>Note (optional)
+        <input value={m.note} onChange={ev => setM({ ...m, note: ev.target.value })} />
+      </label>
+      {moveMsg && <p><b>{moveMsg}</b></p>}
+      <button onClick={doMove}>Move stock</button>
+
+      <h3>Front-of-pack photos</h3>
+      <p>
+        {photoCount} of {MAX_PHOTOS_PER_ITEM} photos saved. Fill the frame with the front of the pack.
+        Add a second photo in different light for better matching. Photos are kept as numbers, not pictures.
+      </p>
+      <ImageCapture label="Take front-of-pack photo" onSignature={onPhoto} />
+      {photoCount > 0 && <button className="small" onClick={onClearPhotos}>Clear photos</button>}
+
       <h3>Recent adjustments</h3>
       {history.length === 0 && <p>None yet.</p>}
       {history.map(h => (
         <div key={h.id} className="row">
-          <span>{h.reason}{h.note ? ` · ${h.note}` : ''}</span>
-          <span>{h.change > 0 ? '+' : ''}{h.change} {h.unit}</span>
+          <span>{h.reason}{h.note ? ` · ${h.note}` : ''}{h.by ? ` · ${h.by}` : ''}</span>
+          <span>
+            {h.moved ? `${h.moved} ${h.unit}` : h.change !== 0 ? `${h.change > 0 ? '+' : ''}${h.change} ${h.unit}` : ''}
+          </span>
         </div>
       ))}
     </div>
