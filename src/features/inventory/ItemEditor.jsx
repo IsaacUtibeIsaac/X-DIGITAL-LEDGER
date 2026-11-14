@@ -49,6 +49,14 @@ export default function ItemEditor({ item, history, onSave, onAdjust, onMove, on
     <div>
       <button onClick={onClose}>← Back to inventory</button>
       <h3>Edit item</h3>
+      <h3>Front-of-pack photos (helps cashiers sell faster)</h3>
+      <p>
+        {photoCount} of {MAX_PHOTOS_PER_ITEM} photos saved. Fill the frame with the front of the pack.
+        Add a second photo in different light for better matching. Photos are kept as numbers, not pictures.
+      </p>
+      <ImageCapture label="Take front-of-pack photo" onSignature={onPhoto} />
+      {photoCount > 0 && <button className="small" onClick={onClearPhotos}>Clear photos</button>}
+
       <div className="grid2">
         <label>Item name
           <input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} />
@@ -135,14 +143,6 @@ export default function ItemEditor({ item, history, onSave, onAdjust, onMove, on
       </label>
       {moveMsg && <p><b>{moveMsg}</b></p>}
       <button onClick={doMove}>Move stock</button>
-
-      <h3>Front-of-pack photos</h3>
-      <p>
-        {photoCount} of {MAX_PHOTOS_PER_ITEM} photos saved. Fill the frame with the front of the pack.
-        Add a second photo in different light for better matching. Photos are kept as numbers, not pictures.
-      </p>
-      <ImageCapture label="Take front-of-pack photo" onSignature={onPhoto} />
-      {photoCount > 0 && <button className="small" onClick={onClearPhotos}>Clear photos</button>}
 
       <h3>Recent adjustments</h3>
       {history.length === 0 && <p>None yet.</p>}
