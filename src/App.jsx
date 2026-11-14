@@ -1,3 +1,4 @@
+// DIGITAL LEDGER app (repository X-DIGITAL-LEDGER): this file is src/App.jsx
 import { useState, useEffect, useRef } from 'react'
 import { supabase, supabaseReady } from './lib/supabase.js'
 import { sync } from './lib/syncInstance.js'
