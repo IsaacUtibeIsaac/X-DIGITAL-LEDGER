@@ -4,6 +4,8 @@ import { recordSale, voidSale, loadSales, loadVoids, checkStock, previewCharge }
 import ReceiptView from '../features/sales/ReceiptView.jsx'
 import BarcodeScanner from '../features/scan/BarcodeScanner.jsx'
 import VoiceButton from '../features/scan/VoiceButton.jsx'
+import ImageCapture from '../features/scan/ImageCapture.jsx'
+import { suggestProducts } from '../features/scan/imageMatch.js'
 import { wantsReceipt } from '../features/settings/settingsStore.js'
 import { receiptsAllowed } from '../features/wallet/walletStore.js'
 import { getRole } from '../lib/role.js'
@@ -28,6 +30,7 @@ export default function Sell() {
   const [lastSale, setLastSale] = useState(null)
   const [sales, setSales] = useState(loadSales())
   const [voids, setVoids] = useState(loadVoids())
+  const [matches, setMatches] = useState(null)
 
   function commit(next) {
     linesRef.current = next
@@ -70,6 +73,17 @@ export default function Sell() {
       return
     }
     addLine(p, p.units[0])
+  }
+
+  function onPhoto(sig) {
+    const found = suggestProducts(sig, items, 4)
+    setMatches(found)
+    setMessage(found.length ? '' : 'No items have front-of-pack photos yet. Ask the manager to add them in Inventory.')
+  }
+
+  function pickMatch(p, unit) {
+    addLine(p, unit)
+    setMatches(null)
   }
 
   function changeQty(i, delta) {
@@ -158,6 +172,26 @@ export default function Sell() {
       {scanning
         ? <BarcodeScanner continuous onCode={onScan} onClose={() => setScanning(false)} />
         : <button className="big" onClick={() => setScanning(true)}>Scan items with camera</button>}
+
+      <div><ImageCapture label="Match by photo (front of pack)" onSignature={onPhoto} /></div>
+      {matches && matches.length > 0 && (
+        <div>
+          <p><b>Closest matches.</b> Look-alike packs can be confused, so check the pack and tap the right one.</p>
+          {matches.map(({ product: p, score }) => (
+            <div key={p.id} className="sug">
+              <b>{p.name}</b>{p.brand ? ` · ${p.brand}` : ''} · {Math.round(score * 100)}% alike (on hand: {describeStock(p)})
+              <div>
+                {p.units.map(u => (
+                  <button key={u.name} onClick={() => pickMatch(p, u)}>
+                    {u.name} ₦{u.price.toLocaleString()}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <button className="small" onClick={() => setMatches(null)}>None of these</button>
+        </div>
+      )}
 
       <div className="searchrow">
         <input
