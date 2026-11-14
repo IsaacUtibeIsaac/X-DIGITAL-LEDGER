@@ -25,7 +25,6 @@ import Security from './screens/Security.jsx'
 import KycStore from './screens/KycStore.jsx'
 import PinLock from './features/security/PinLock.jsx'
 import LegalScreen from './features/legal/LegalScreen.jsx'
-import { LEGAL_VERSION } from './features/legal/legalText.js'
 import KycBanner from './features/business/KycBanner.jsx'
 
 const screens = {
@@ -75,14 +74,6 @@ function setForceTest(on) {
   window.location.reload()
 }
 
-function legalKey(userId) {
-  return `dl_legal_${LEGAL_VERSION}_${userId}`
-}
-
-function readLegalAccepted(userId) {
-  try { return localStorage.getItem(legalKey(userId)) === '1' } catch { return false }
-}
-
 export default function App() {
   const startRole = tabsByRole[getRole()] ? getRole() : 'Manager'
 
@@ -102,6 +93,8 @@ export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const [legalOk, setLegalOk] = useState(false)
+  const [legalDocs, setLegalDocs] = useState(null)
+  const [legalChecked, setLegalChecked] = useState(false)
   const [showLegal, setShowLegal] = useState(false)
 
   const adoptRef = useRef(false)
@@ -128,9 +121,25 @@ export default function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  // 1b. Has this person accepted the current legal text on this phone
+  // 1b. Published Terms and Privacy Policy (written and approved in XDL-Management).
+  // If nothing is published yet, or the lookup fails (for example offline), nobody is blocked.
   useEffect(() => {
-    setLegalOk(userId ? readLegalAccepted(userId) : false)
+    if (TEST_MODE || !userId) {
+      setLegalDocs(null)
+      setLegalOk(false)
+      setLegalChecked(false)
+      return
+    }
+    let live = true
+    setLegalChecked(false)
+    supabase.rpc('legal_published', { p_audience: 'merchant' }).then(({ data, error }) => {
+      if (!live) return
+      const docs = !error && Array.isArray(data) ? data : []
+      setLegalDocs(docs)
+      setLegalOk(docs.every(d => d.accepted))
+      setLegalChecked(true)
+    })
+    return () => { live = false }
   }, [userId])
 
   // 2. Which business and role they have
@@ -245,8 +254,13 @@ export default function App() {
     }
   }
 
-  function acceptLegal() {
-    try { localStorage.setItem(legalKey(userId), '1') } catch {}
+  async function acceptLegal() {
+    for (const d of legalDocs || []) {
+      if (d.accepted) continue
+      const { error } = await supabase.rpc('legal_accept', { p_doc: d.id })
+      if (error) throw error
+    }
+    setLegalDocs(docs => (docs || []).map(d => ({ ...d, accepted: true })))
     setLegalOk(true)
   }
 
@@ -373,7 +387,7 @@ export default function App() {
             {showLegal ? (
               <>
                 <button type="button" className="small" onClick={() => setShowLegal(false)}>Back</button>
-                <LegalScreen />
+                <LegalScreen docs={legalDocs} />
               </>
             ) : (
               <Screen key={role + current + refreshKey} businessId={businessId} />
@@ -393,8 +407,10 @@ export default function App() {
     content = <div className="screen">Loading...</div>
   } else if (!session) {
     content = <Login />
+  } else if (!legalChecked) {
+    content = <div className="screen">Loading...</div>
   } else if (!legalOk) {
-    content = <LegalScreen onAccept={acceptLegal} />
+    content = <LegalScreen docs={legalDocs} onAccept={acceptLegal} />
   } else if (member.status === 'error') {
     content = (
       <div className="screen">
