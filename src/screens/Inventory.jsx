@@ -6,13 +6,15 @@ import {
 } from '../features/inventory/productStore.js'
 import ItemEditor from '../features/inventory/ItemEditor.jsx'
 import BarcodeScanner from '../features/scan/BarcodeScanner.jsx'
+import ImageCapture from '../features/scan/ImageCapture.jsx'
+import { MAX_PHOTOS_PER_ITEM } from '../features/scan/imageMatch.js'
 import { getRole } from '../lib/role.js'
 
 const empty = {
   name: '', brand: '', category: '', barcode: '',
   baseUnit: 'piece', basePrice: '',
   bigName: '', bigSize: '', bigPrice: '',
-  stockUnit: '', quantity: '', reorder: '', cost: '', expiry: ''
+  stockUnit: '', quantity: '', reorder: '', cost: '', expiry: '', imgSigs: []
 }
 
 export default function Inventory() {
@@ -82,6 +84,23 @@ export default function Inventory() {
             <input name="barcode" placeholder="Barcode / SKU" value={form.barcode} onChange={change} />
           </div>
           <button onClick={() => setScanning(true)}>Scan barcode with camera</button>
+
+          <h3>Front-of-pack photo (helps cashiers sell faster)</h3>
+          <p>
+            {(form.imgSigs || []).length} of {MAX_PHOTOS_PER_ITEM} photos ready for this item.
+            Fill the frame with the front of the pack.
+          </p>
+          <ImageCapture
+            label="Take front-of-pack photo"
+            onSignature={sig => setForm(f => ({
+              ...f,
+              imgSigs: [...(f.imgSigs || []), sig].slice(-MAX_PHOTOS_PER_ITEM)
+            }))}
+          />
+          {(form.imgSigs || []).length > 0 && (
+            <button className="small" onClick={() => setForm(f => ({ ...f, imgSigs: [] }))}>Clear photos</button>
+          )}
+
           <div className="grid2">
             <input name="baseUnit" placeholder="Base unit (cup, piece)" value={form.baseUnit} onChange={change} />
             <input name="basePrice" type="number" placeholder="Price per base unit ₦" value={form.basePrice} onChange={change} />
@@ -115,7 +134,7 @@ export default function Inventory() {
       {shown.map(p => (
         <div key={p.id} className="row" onClick={canManage ? () => setEditId(p.id) : undefined}>
           <div>
-            <b>{p.name}</b>{p.brand ? ` · ${p.brand}` : ''}{p.category ? ` · ${p.category}` : ''}
+            <b>{p.name}</b>{p.brand ? ` · ${p.brand}` : ''}{p.category ? ` · ${p.category}` : ''}{(p.imgSigs || []).length ? ' · 📷' : ''}
             <div>{p.units.map(u => `${u.name} ₦${u.price.toLocaleString()}`).join(' · ')}</div>
           </div>
           <span>
