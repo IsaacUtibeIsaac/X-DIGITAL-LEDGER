@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import {
   loadProducts, addProduct, searchProducts, describeStock, inventoryValue,
-  updateProduct, adjustQuantity, loadAdjustments, lowStock
+  updateProduct, adjustQuantity, loadAdjustments, lowStock,
+  moveStock, addImageSignature, clearImageSignatures, stockSplit
 } from '../features/inventory/productStore.js'
 import ItemEditor from '../features/inventory/ItemEditor.jsx'
 import BarcodeScanner from '../features/scan/BarcodeScanner.jsx'
@@ -32,6 +33,9 @@ export default function Inventory() {
           history={loadAdjustments().filter(h => h.itemId === editId).slice(0, 5)}
           onSave={changes => { setItems(updateProduct(editId, changes)); setEditId(null) }}
           onAdjust={data => setItems(adjustQuantity(editId, data))}
+          onMove={data => setItems(moveStock(editId, data))}
+          onPhoto={sig => setItems(addImageSignature(editId, sig))}
+          onClearPhotos={() => setItems(clearImageSignatures(editId))}
           onClose={() => setEditId(null)}
         />
       </div>
@@ -114,7 +118,12 @@ export default function Inventory() {
             <b>{p.name}</b>{p.brand ? ` · ${p.brand}` : ''}{p.category ? ` · ${p.category}` : ''}
             <div>{p.units.map(u => `${u.name} ₦${u.price.toLocaleString()}`).join(' · ')}</div>
           </div>
-          <span>On hand: {describeStock(p)}{low.has(p.id) ? ' · LOW' : ''}</span>
+          <span>
+            On hand: {describeStock(p)}{low.has(p.id) ? ' · LOW' : ''}
+            {stockSplit(p).store > 0 && (
+              <small> (shelf {stockSplit(p).shelf}, store room {stockSplit(p).store} {p.baseUnit})</small>
+            )}
+          </span>
         </div>
       ))}
     </div>
