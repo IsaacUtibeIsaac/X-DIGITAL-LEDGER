@@ -18,6 +18,8 @@ const navIcons = {
   Reports: '▥',
   Staff: '☺',
   Wallet: '₦',
+  Security: '⛨',
+  'KYC Store': '✓',
   XDL: '◈',
   RAI: '✦'
 }
