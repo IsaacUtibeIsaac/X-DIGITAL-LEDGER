@@ -19,6 +19,10 @@ function write(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
 }
 
+function savedBy() {
+  try { return localStorage.getItem('dl_cashier_name') || '' } catch { return '' }
+}
+
 export const loadSales = () => read(SALES)
 export const loadVoids = () => read(VOIDS)
 
@@ -116,7 +120,7 @@ export function voidSale(saleId, reason) {
   const sale = loadSales().find(s => s.id === saleId)
   if (!sale || loadVoids().some(v => v.saleId === saleId)) return false
   write(VOIDS, [
-    { id: newId(), saleId, reason, date: new Date().toISOString() },
+    { id: newId(), saleId, reason, by: savedBy(), date: new Date().toISOString() },
     ...loadVoids()
   ])
   const used = baseUsed(sale.lines)
