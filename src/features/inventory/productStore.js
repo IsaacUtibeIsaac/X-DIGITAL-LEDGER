@@ -1,6 +1,22 @@
 import { newId } from '../../lib/newId.js'
 const KEY = 'dl_products'
 const ADJ_KEY = 'dl_adjustments'
+const MAX_PHOTOS = 3
+
+// Who made the change (the owner acting as manager shows as "Name (Owner as Manager)")
+function who() {
+  try { return localStorage.getItem('dl_cashier_name') || '' } catch { return '' }
+}
+
+// Every stock change, move and item edit is recorded here. The owner reads it under Security.
+function logChange(entry) {
+  try {
+    localStorage.setItem(ADJ_KEY, JSON.stringify([
+      { id: newId(), by: who(), date: new Date().toISOString(), ...entry },
+      ...loadAdjustments()
+    ]))
+  } catch {}
+}
 
 function normalise(p) {
   if (p.units) return { unitCost: 0, category: '', reorderLevel: 0, ...p }
@@ -68,12 +84,23 @@ export function lowStock(list) {
   return list.filter(p => p.reorderLevel > 0 && p.quantity <= p.reorderLevel)
 }
 
-export function describeStock(p) {
+export function describeQty(p, qty) {
   const big = [...p.units].sort((a, b) => b.size - a.size)[0]
-  if (big.size <= 1) return `${p.quantity} ${p.baseUnit}`
-  const whole = Math.floor(p.quantity / big.size)
-  const rest = p.quantity % big.size
+  if (big.size <= 1) return `${qty} ${p.baseUnit}`
+  const whole = Math.floor(qty / big.size)
+  const rest = qty % big.size
   return `${whole} ${big.name} + ${rest} ${p.baseUnit}`
+}
+
+export function describeStock(p) {
+  return describeQty(p, p.quantity)
+}
+
+// Stock is split between the shelf and the store room. Sales and adjustments change the
+// total, and the shelf takes the change first. Only moves change the store room amount.
+export function stockSplit(p) {
+  const store = Math.min(Math.max(Number(p.storeQty) || 0, 0), p.quantity)
+  return { shelf: p.quantity - store, store }
 }
 
 export function searchProducts(list, text) {
@@ -106,6 +133,7 @@ export function loadAdjustments() {
 }
 
 export function updateProduct(id, c) {
+  const before = loadProducts().find(p => p.id === id)
   const next = loadProducts().map(p => {
     if (p.id !== id) return p
     return {
@@ -121,6 +149,29 @@ export function updateProduct(id, c) {
     }
   })
   save(next)
+  if (before) {
+    const notes = []
+    const after = next.find(p => p.id === id)
+    if (after.name !== before.name) notes.push(`name ${before.name} to ${after.name}`)
+    if (after.brand !== before.brand) notes.push('brand changed')
+    if (after.barcode !== before.barcode) notes.push('barcode changed')
+    before.units.forEach((u, i) => {
+      if (after.units[i].price !== u.price) {
+        notes.push(`${u.name} price ₦${u.price} to ₦${after.units[i].price}`)
+      }
+    })
+    if (Math.round(after.unitCost * 100) !== Math.round(before.unitCost * 100)) {
+      notes.push(`cost ₦${Math.round(before.unitCost * 100) / 100} to ₦${Math.round(after.unitCost * 100) / 100}`)
+    }
+    if (after.reorderLevel !== before.reorderLevel) notes.push('reorder level changed')
+    if (after.expiry !== before.expiry) notes.push('expiry changed')
+    if (notes.length) {
+      logChange({
+        itemId: id, itemName: before.name, change: 0, unit: before.baseUnit,
+        reason: 'Item edited', note: notes.join('; ')
+      })
+    }
+  }
   return next
 }
 
@@ -140,15 +191,48 @@ export function adjustQuantity(id, a) {
   }
   const next = list.map(x => (x.id === id ? { ...x, quantity: newQty, unitCost } : x))
   save(next)
-  try {
-    localStorage.setItem(ADJ_KEY, JSON.stringify([
-      {
-        id: newId(), itemId: id, itemName: p.name,
-        change: actual, unit: p.baseUnit, reason: a.reason,
-        note: a.note || '', date: new Date().toISOString()
-      },
-      ...loadAdjustments()
-    ]))
-  } catch {}
+  logChange({
+    itemId: id, itemName: p.name,
+    change: actual, unit: p.baseUnit, reason: a.reason,
+    note: a.note || ''
+  })
+  return next
+}
+
+// Move stock between the shelf and the store room. The total does not change.
+// m: { direction: 'toStore' | 'toShelf', unitName, qty, note }
+export function moveStock(id, m) {
+  const list = loadProducts()
+  const p = list.find(x => x.id === id)
+  if (!p) return list
+  const unit = p.units.find(u => u.name === m.unitName) || p.units[0]
+  const q = (Number(m.qty) || 0) * unit.size
+  if (q <= 0) return list
+  const { shelf, store } = stockSplit(p)
+  const toStore = m.direction !== 'toShelf'
+  if (toStore && q > shelf) return list
+  if (!toStore && q > store) return list
+  const next = list.map(x => (x.id === id ? { ...x, storeQty: toStore ? store + q : store - q } : x))
+  save(next)
+  logChange({
+    itemId: id, itemName: p.name, change: 0, moved: q, unit: p.baseUnit,
+    reason: toStore ? 'Moved to store room' : 'Moved to shelf',
+    note: m.note || ''
+  })
+  return next
+}
+
+// ImageMatch: up to 3 front-of-pack photos per item, saved as number lists (not pictures)
+export function addImageSignature(id, sig) {
+  const next = loadProducts().map(x =>
+    x.id === id ? { ...x, imgSigs: [...(x.imgSigs || []), sig].slice(-MAX_PHOTOS) } : x
+  )
+  save(next)
+  return next
+}
+
+export function clearImageSignatures(id) {
+  const next = loadProducts().map(x => (x.id === id ? { ...x, imgSigs: [] } : x))
+  save(next)
   return next
 }
