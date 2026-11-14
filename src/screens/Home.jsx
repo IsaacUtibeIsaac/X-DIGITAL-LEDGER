@@ -3,8 +3,6 @@ import { getRole } from '../lib/role.js'
 import { loadProducts, inventoryValue, lowStock } from '../features/inventory/productStore.js'
 import { loadSales, loadVoids, goodsTotal } from '../features/sales/saleStore.js'
 import { loadRequests } from '../features/requests/requestStore.js'
-import AccountReview from '../features/business/AccountReview.jsx'
-import BusinessProfile from '../features/business/BusinessProfile.jsx'
 import ReceiptSettings from '../features/settings/ReceiptSettings.jsx'
 import BackupTools from '../features/settings/BackupTools.jsx'
 
@@ -96,8 +94,6 @@ export default function Home() {
             <Stat label="Voided sales" value={voided.size} />
             <Stat label="Open item requests" value={openRequests} />
           </div>
-          <AccountReview />
-          <BusinessProfile />
           <ReceiptSettings />
           <BackupTools />
         </>
