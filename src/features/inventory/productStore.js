@@ -69,6 +69,7 @@ export function addProduct(f) {
     reorderLevel: (Number(f.reorder) || 0) * stockUnit.size,
     unitCost: (Number(f.cost) || 0) / stockUnit.size,
     expiry: f.expiry || '',
+    imgSigs: Array.isArray(f.imgSigs) ? f.imgSigs.slice(-MAX_PHOTOS) : [],
     createdAt: new Date().toISOString()
   }
   const next = [item, ...loadProducts()]
