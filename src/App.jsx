@@ -21,6 +21,12 @@ import Staff from './screens/Staff.jsx'
 import Wallet from './screens/Wallet.jsx'
 import Xdl from './screens/Xdl.jsx'
 import Rai from './screens/Rai.jsx'
+import Security from './screens/Security.jsx'
+import KycStore from './screens/KycStore.jsx'
+import PinLock from './features/security/PinLock.jsx'
+import LegalScreen from './features/legal/LegalScreen.jsx'
+import { LEGAL_VERSION } from './features/legal/legalText.js'
+import KycBanner from './features/business/KycBanner.jsx'
 
 const screens = {
   Dashboard: Home,
@@ -33,6 +39,8 @@ const screens = {
   Reports,
   Staff,
   Wallet,
+  Security,
+  'KYC Store': KycStore,
   XDL: Xdl,
   RAI: Rai
 }
@@ -40,7 +48,8 @@ const screens = {
 const tabsByRole = {
   Owner: [
     'Dashboard', 'Inventory', 'Customers', 'Suppliers',
-    'Requests', 'Receipts', 'Reports', 'Wallet', 'Staff', 'RAI'
+    'Requests', 'Receipts', 'Reports', 'Wallet', 'Staff',
+    'Security', 'KYC Store', 'RAI'
   ],
   Manager: [
     'Dashboard', 'Inventory', 'Suppliers',
@@ -66,6 +75,14 @@ function setForceTest(on) {
   window.location.reload()
 }
 
+function legalKey(userId) {
+  return `dl_legal_${LEGAL_VERSION}_${userId}`
+}
+
+function readLegalAccepted(userId) {
+  try { return localStorage.getItem(legalKey(userId)) === '1' } catch { return false }
+}
+
 export default function App() {
   const startRole = tabsByRole[getRole()] ? getRole() : 'Manager'
 
@@ -83,6 +100,9 @@ export default function App() {
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const [legalOk, setLegalOk] = useState(false)
+  const [showLegal, setShowLegal] = useState(false)
 
   const adoptRef = useRef(false)
   const syncRef = useRef(null)
@@ -107,6 +127,11 @@ export default function App() {
 
     return () => sub.subscription.unsubscribe()
   }, [])
+
+  // 1b. Has this person accepted the current legal text on this phone
+  useEffect(() => {
+    setLegalOk(userId ? readLegalAccepted(userId) : false)
+  }, [userId])
 
   // 2. Which business and role they have
   useEffect(() => {
@@ -198,6 +223,7 @@ export default function App() {
     setRoleState(newRole)
     setTab(tabsByRole[newRole][0])
     setMobileOpen(false)
+    setShowLegal(false)
 
     // Sales and changes made while the owner acts as someone else are labelled as such.
     if (!TEST_MODE && member.status === 'ready') {
@@ -217,6 +243,11 @@ export default function App() {
       setMember({ status: 'idle' })
       setSyncStatus({ state: 'idle' })
     }
+  }
+
+  function acceptLegal() {
+    try { localStorage.setItem(legalKey(userId), '1') } catch {}
+    setLegalOk(true)
   }
 
   function refreshScreen() {
@@ -257,7 +288,7 @@ export default function App() {
 
         <BottomNav
           tab={current}
-          setTab={setTab}
+          setTab={t => { setShowLegal(false); setTab(t) }}
           names={names}
           collapsed={sidebarCollapsed}
           mobileOpen={mobileOpen}
@@ -318,6 +349,7 @@ export default function App() {
                   ) : (
                     <span>{role}</span>
                   )}
+                  <button type="button" className="small" onClick={() => setShowLegal(!showLegal)}>Legal</button>
                   <button type="button" className="small" onClick={signOut}>Sign out</button>
                 </>
               )}
@@ -333,8 +365,19 @@ export default function App() {
             </div>
           )}
 
+          {!TEST_MODE && memberRole === 'Owner' && role === 'Owner' && current === 'Dashboard' && !showLegal && (
+            <KycBanner onOpen={() => setTab('KYC Store')} />
+          )}
+
           <main className="app-screen">
-            <Screen key={role + current + refreshKey} businessId={businessId} />
+            {showLegal ? (
+              <>
+                <button type="button" className="small" onClick={() => setShowLegal(false)}>Back</button>
+                <LegalScreen />
+              </>
+            ) : (
+              <Screen key={role + current + refreshKey} businessId={businessId} />
+            )}
           </main>
 
         </div>
@@ -350,6 +393,8 @@ export default function App() {
     content = <div className="screen">Loading...</div>
   } else if (!session) {
     content = <Login />
+  } else if (!legalOk) {
+    content = <LegalScreen onAccept={acceptLegal} />
   } else if (member.status === 'error') {
     content = (
       <div className="screen">
@@ -383,7 +428,11 @@ export default function App() {
       </div>
     )
   } else if (member.status === 'ready') {
-    content = renderShell()
+    content = (
+      <PinLock userId={userId} onForgot={signOut}>
+        {renderShell()}
+      </PinLock>
+    )
   } else {
     content = <div className="screen">Loading...</div>
   }
