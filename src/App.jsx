@@ -19,6 +19,7 @@ import Requests from './screens/Requests.jsx'
 import Receipts from './screens/Receipts.jsx'
 import Reports from './screens/Reports.jsx'
 import Staff from './screens/Staff.jsx'
+import Messages from './screens/Messages.jsx'
 import Wallet from './screens/Wallet.jsx'
 import Rai from './screens/Rai.jsx'
 import Security from './screens/Security.jsx'
@@ -37,6 +38,7 @@ const screens = {
   Receipts,
   Reports,
   Staff,
+  Messages,
   Wallet,
   Security,
   'KYC Store': KycStore,
@@ -47,15 +49,15 @@ const tabsByRole = {
   Owner: [
     'Dashboard', 'Inventory', 'Customers', 'Suppliers',
     'Requests', 'Receipts', 'Reports', 'Wallet', 'Staff',
-    'Security', 'KYC Store', 'RAI'
+    'Messages', 'Security', 'KYC Store', 'RAI'
   ],
   Manager: [
     'Dashboard', 'Inventory', 'Suppliers',
-    'Requests', 'Receipts', 'RAI'
+    'Requests', 'Receipts', 'Messages', 'RAI'
   ],
   Cashier: [
     'Sales', 'Receipts', 'Customers',
-    'Requests', 'RAI', 'Dashboard'
+    'Requests', 'Messages', 'RAI', 'Dashboard'
   ]
 }
 
@@ -86,6 +88,7 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState({ state: 'idle' })
   const [staleData, setStaleData] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [unread, setUnread] = useState(0)
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -210,6 +213,32 @@ export default function App() {
     return () => clearInterval(id)
   }, [userId, member.status])
 
+  // 5. Official messages: how many are unread or still waiting to be acknowledged (the badge on Messages).
+  // If the messaging file has not been run in Supabase yet, the badge simply stays hidden.
+  useEffect(() => {
+    if (TEST_MODE || !businessId) {
+      setUnread(0)
+      return
+    }
+    let live = true
+    const check = () => {
+      supabase.rpc('dl_comms_unread', { p_business: businessId }).then(({ data, error }) => {
+        if (!live) return
+        if (error || !data) {
+          setUnread(0)
+          return
+        }
+        setUnread(Math.max(Number(data.unread) || 0, Number(data.needs_ack) || 0))
+      })
+    }
+    check()
+    const id = setInterval(check, 60000)
+    return () => {
+      live = false
+      clearInterval(id)
+    }
+  }, [businessId, tab])
+
   function changeRole(event) {
     const newRole = event.target.value
 
@@ -292,6 +321,7 @@ export default function App() {
           collapsed={sidebarCollapsed}
           mobileOpen={mobileOpen}
           onNavigate={() => setMobileOpen(false)}
+          badges={{ Messages: unread }}
         />
 
         <div className={`app-main ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
@@ -375,7 +405,12 @@ export default function App() {
                 <LegalScreen docs={legalDocs} />
               </>
             ) : (
-              <Screen key={role + current + refreshKey} businessId={businessId} />
+              <Screen
+                key={role + current + refreshKey}
+                businessId={businessId}
+                viewRole={role}
+                realRole={memberRole}
+              />
             )}
           </main>
 
