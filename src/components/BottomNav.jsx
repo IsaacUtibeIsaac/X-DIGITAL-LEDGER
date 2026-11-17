@@ -6,6 +6,7 @@
 //   collapsed   true = icons only (computers and tablets)
 //   mobileOpen  true = the menu drawer is open (phones)
 //   onNavigate  called after a screen is chosen (closes the phone drawer)
+//   badges      optional counts to show beside a screen, for example { Messages: 3 }
 
 const navIcons = {
   Dashboard: '▦',
@@ -17,11 +18,24 @@ const navIcons = {
   Receipts: '▧',
   Reports: '▥',
   Staff: '☺',
+  Messages: '✉',
   Wallet: '₦',
   Security: '⛨',
   'KYC Store': '✓',
   XDL: '◈',
   RAI: '✦'
+}
+
+const badgeStyle = {
+  marginLeft: 'auto',
+  minWidth: 18,
+  padding: '0 6px',
+  borderRadius: 9,
+  background: '#c0392b',
+  color: '#fff',
+  fontSize: 11,
+  lineHeight: '18px',
+  textAlign: 'center'
 }
 
 export default function BottomNav({
@@ -30,7 +44,8 @@ export default function BottomNav({
   names = [],
   collapsed = false,
   mobileOpen = false,
-  onNavigate
+  onNavigate,
+  badges = {}
 }) {
   const navClass = [
     'app-nav',
@@ -53,22 +68,26 @@ export default function BottomNav({
       <div className="nav-section-label">WORKSPACE</div>
 
       <div className="nav-items">
-        {names.map(name => (
-          <button
-            key={name}
-            type="button"
-            className={'nav-item' + (name === tab ? ' active' : '')}
-            onClick={() => choose(name)}
-            aria-current={name === tab ? 'page' : undefined}
-            aria-label={name}
-            title={name}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              {navIcons[name] || '•'}
-            </span>
-            <span className="nav-label">{name}</span>
-          </button>
-        ))}
+        {names.map(name => {
+          const count = Number(badges[name]) || 0
+          return (
+            <button
+              key={name}
+              type="button"
+              className={'nav-item' + (name === tab ? ' active' : '')}
+              onClick={() => choose(name)}
+              aria-current={name === tab ? 'page' : undefined}
+              aria-label={count > 0 ? `${name}, ${count} waiting` : name}
+              title={name}
+            >
+              <span className="nav-icon" aria-hidden="true">
+                {navIcons[name] || '•'}
+              </span>
+              <span className="nav-label">{name}</span>
+              {count > 0 && <span style={badgeStyle}>{count > 9 ? '9+' : count}</span>}
+            </button>
+          )
+        })}
       </div>
 
       <div className="nav-footer-note">
