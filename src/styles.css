@@ -949,3 +949,28 @@ button.small {
   background: #fef2f2;
   color: #b91c1c;
 }
+
+/* ---------- Profile, KYC tasks, Services, See more ---------- */
+.more-row { display: flex; gap: 8px; margin: 6px 0 12px; }
+button.ghost { background: transparent; color: var(--navy); border: 1px solid var(--line); }
+.profile-card, .profile-section { margin: 10px 0 18px; }
+.profile-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.profile-head h3 { margin: 0 0 4px; }
+.avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; background: var(--navy); color: #fff; }
+.kyc-top { margin-bottom: 8px; }
+.kyc-topline { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kyc-topline h3 { margin: 0; }
+.kyc-card { margin: 8px 0; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+button.kyc-head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px; text-align: left; font-weight: 400; background: transparent; color: var(--ink); border-radius: 0; }
+.kyc-num { flex: none; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; background: var(--line); color: var(--navy); }
+.kyc-num.done { background: #166534; color: #fff; }
+.kyc-title { flex: 1; font-size: 14px; }
+.kyc-title small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+.kyc-head .pill { margin-top: 0; flex: none; }
+.kyc-body { padding: 4px 12px 12px; border-top: 1px solid var(--line); }
+.kyc-note, .kyc-small { color: var(--muted); font-size: 13px; }
+.kyc-upload { display: inline-block; margin: 0; padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; background: var(--navy); color: #fff; }
+.kyc-verified { margin: 8px 0; padding: 4px 12px 10px; border: 1px solid #86efac; border-radius: 12px; background: #f0fdf4; }
+.svc-card { display: flex; gap: 12px; align-items: flex-start; margin: 8px 0; padding: 12px; background: #fff; border: 1px solid var(--line); border-radius: 12px; }
+.svc-card.locked { opacity: 0.85; }
+.svc-icon { font-size: 22px; }
