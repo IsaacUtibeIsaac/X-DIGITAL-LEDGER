@@ -12,7 +12,7 @@ const has = v => Boolean(v && String(v).trim())
 
 // KYC 1 = business details, KYC 2 = TIN and CAC number, KYC 3 = documents sent for review.
 // Business name, address, hotline and email live in businessStore (receipts use them).
-const blankKyc = { social: '', tin: '', cacNumber: '', s1At: '', s2At: '', s3At: '', verifiedAt: '' }
+const blankKyc = { social: '', tin: '', cacNumber: '', s1At: '', s2At: '', s3At: '', verifiedAt: '', reviewNote: '' }
 
 export function loadKyc() {
   try {
@@ -50,11 +50,30 @@ export function docMeta(kind) {
   return d ? { name: d.name, at: d.at } : null
 }
 
-export function submitKyc() {
-  return saveKyc({ s3At: new Date().toISOString() })
+// Used only by the upload code (kycCloud.js). Null if nothing new is waiting on this phone.
+export function docForUpload(kind) {
+  const d = readDocs()[kind]
+  return d && d.data ? { data: d.data, type: d.type, name: d.name } : null
 }
 
-// Test mode only. Later, Digital Ledger staff will set this from XDL-Management.
+// After a document reaches the server, keep a small marker and drop the copy on this phone.
+export function markDocUploaded(kind, at) {
+  const docs = readDocs()
+  const d = docs[kind] || {}
+  docs[kind] = {
+    name: d.name || 'Uploaded document',
+    type: d.type || '',
+    at: d.at || at || new Date().toISOString(),
+    remote: true
+  }
+  try { localStorage.setItem(DOCS, JSON.stringify(docs)) } catch {}
+}
+
+export function submitKyc() {
+  return saveKyc({ s3At: new Date().toISOString(), reviewNote: '' })
+}
+
+// Test mode only. In the real app, a reviewer in XDL-Management sets this.
 export function markVerified() {
   return saveKyc({ verifiedAt: new Date().toISOString() })
 }
