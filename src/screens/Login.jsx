@@ -9,7 +9,24 @@ export default function Login() {
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
 
+  async function sendReset() {
+    setError('')
+    setNote('')
+    if (!email.trim()) {
+      setError('Enter your email address first.')
+      return
+    }
+    setBusy(true)
+    const { error: e } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin
+    })
+    setBusy(false)
+    if (e) setError(e.message)
+    else setNote('If that email has an account, a reset link is on its way. Check your inbox and spam folder.')
+  }
+
   async function submit() {
+    if (mode === 'forgot') return sendReset()
     setError('')
     setNote('')
     if (!email.trim() || !password) {
@@ -42,7 +59,7 @@ export default function Login() {
   return (
     <div className="screen auth-card">
       <h2>Digital Ledger</h2>
-      <p>{mode === 'signin' ? 'Sign in to continue.' : 'Create your account.'}</p>
+      <p>{mode === 'signin' ? 'Sign in to continue.' : mode === 'forgot' ? 'Enter your email and we will send a reset link.' : 'Create your account.'}</p>
 
       <div className="auth-tabs">
         <button type="button" className={mode === 'signin' ? 'tab on' : 'tab'} onClick={() => setMode('signin')}>Sign in</button>
@@ -56,21 +73,34 @@ export default function Login() {
         value={email}
         onChange={e => setEmail(e.target.value)}
       />
-      <input
-        type="password"
-        autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-        placeholder="Password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter') submit() }}
-      />
+      {mode !== 'forgot' && (
+        <input
+          type="password"
+          autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+          placeholder="Password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') submit() }}
+        />
+      )}
 
       {error && <p className="auth-error">{error}</p>}
       {note && <p className="auth-note">{note}</p>}
 
       <button type="button" className="big" onClick={submit} disabled={busy}>
-        {busy ? 'Please wait...' : mode === 'signin' ? 'Sign in' : 'Create account'}
+        {busy ? 'Please wait...' : mode === 'signin' ? 'Sign in' : mode === 'forgot' ? 'Send reset link' : 'Create account'}
       </button>
+
+      {mode === 'signin' && (
+        <button type="button" className="small ghost" onClick={() => { setMode('forgot'); setError(''); setNote('') }}>
+          Forgot password?
+        </button>
+      )}
+      {mode === 'forgot' && (
+        <button type="button" className="small ghost" onClick={() => { setMode('signin'); setError(''); setNote('') }}>
+          Back to sign in
+        </button>
+      )}
 
       <p className="rai-lock">or</p>
       <button type="button" onClick={google}>Continue with Google</button>
