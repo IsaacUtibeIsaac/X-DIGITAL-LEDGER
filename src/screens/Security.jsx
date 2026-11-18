@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { loadStaff, setMemberActive } from '../lib/session.js'
 import { loadVoids, loadSales } from '../features/sales/saleStore.js'
 import { loadAdjustments } from '../features/inventory/productStore.js'
+import ShowMoreList from '../components/ShowMoreList.jsx'
 
 // Owner only. Staff access (uses the same functions as the Staff screen)
 // and an activity log built from this phone's records of voids and stock changes.
@@ -62,24 +63,30 @@ export default function Security({ businessId }) {
       {data.loading && <p>Loading...</p>}
       {data.error && <p>{data.error.message}</p>}
       {!data.loading && staff.length === 0 && <p>No staff yet. Invite a manager or cashier from the Staff tab.</p>}
-      {staff.map(m => (
-        <div key={m.user_id} className="row">
-          <span>{m.display_name || m.email} · {m.role} · {m.active ? 'Access on' : 'Access off'}</span>
-          <button type="button" className="small" onClick={() => toggle(m)}>
-            {m.active ? 'Turn off' : 'Turn on'}
-          </button>
-        </div>
-      ))}
+      <ShowMoreList
+        items={staff}
+        render={m => (
+          <div key={m.user_id} className="row">
+            <span>{m.display_name || m.email} · {m.role} · {m.active ? 'Access on' : 'Access off'}</span>
+            <button type="button" className="small" onClick={() => toggle(m)}>
+              {m.active ? 'Turn off' : 'Turn on'}
+            </button>
+          </div>
+        )}
+      />
       {note && <p>{note}</p>}
 
       <h3>Activity log</h3>
       {log.length === 0 && <p>No cancelled sales, stock changes or item edits recorded yet.</p>}
-      {log.map(r => (
-        <div key={r.id} className="row">
-          <span>{r.text}{r.detail ? ` · ${r.detail}` : ''}</span>
-          <span>{new Date(r.at).toLocaleString()}</span>
-        </div>
-      ))}
+      <ShowMoreList
+        items={log}
+        render={r => (
+          <div key={r.id} className="row">
+            <span>{r.text}{r.detail ? ` · ${r.detail}` : ''}</span>
+            <span>{new Date(r.at).toLocaleString()}</span>
+          </div>
+        )}
+      />
     </div>
   )
 }
