@@ -23,7 +23,9 @@ import Messages from './screens/Messages.jsx'
 import Wallet from './screens/Wallet.jsx'
 import Rai from './screens/Rai.jsx'
 import Security from './screens/Security.jsx'
-import KycStore from './screens/KycStore.jsx'
+import Profile from './screens/Profile.jsx'
+import Services from './screens/Services.jsx'
+import ResetPassword from './screens/ResetPassword.jsx'
 import PinLock from './features/security/PinLock.jsx'
 import LegalScreen from './features/legal/LegalScreen.jsx'
 import KycBanner from './features/business/KycBanner.jsx'
@@ -41,7 +43,8 @@ const screens = {
   Messages,
   Wallet,
   Security,
-  'KYC Store': KycStore,
+  Profile,
+  Services,
   RAI: Rai
 }
 
@@ -49,15 +52,15 @@ const tabsByRole = {
   Owner: [
     'Dashboard', 'Inventory', 'Customers', 'Suppliers',
     'Requests', 'Receipts', 'Reports', 'Wallet', 'Staff',
-    'Messages', 'Security', 'KYC Store', 'RAI'
+    'Messages', 'Security', 'Services', 'Profile', 'RAI'
   ],
   Manager: [
     'Dashboard', 'Inventory', 'Suppliers',
-    'Requests', 'Receipts', 'Messages', 'RAI'
+    'Requests', 'Receipts', 'Messages', 'Profile', 'RAI'
   ],
   Cashier: [
     'Sales', 'Receipts', 'Customers',
-    'Requests', 'Messages', 'RAI', 'Dashboard'
+    'Requests', 'Messages', 'Profile', 'RAI', 'Dashboard'
   ]
 }
 
@@ -82,6 +85,7 @@ export default function App() {
   const [tab, setTab] = useState(tabsByRole[startRole][0])
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [recovering, setRecovering] = useState(false)
 
   const [member, setMember] = useState({ status: 'idle' })
   const [memberTick, setMemberTick] = useState(0)
@@ -116,7 +120,10 @@ export default function App() {
     })
 
     const { data: sub } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => setSession(newSession)
+      (event, newSession) => {
+        if (event === 'PASSWORD_RECOVERY') setRecovering(true)
+        setSession(newSession)
+      }
     )
 
     return () => sub.subscription.unsubscribe()
@@ -395,7 +402,7 @@ export default function App() {
           )}
 
           {!TEST_MODE && memberRole === 'Owner' && role === 'Owner' && current === 'Dashboard' && !showLegal && (
-            <KycBanner onOpen={() => setTab('KYC Store')} />
+            <KycBanner onOpen={() => setTab('Profile')} />
           )}
 
           <main className="app-screen">
@@ -423,6 +430,8 @@ export default function App() {
 
   if (TEST_MODE) {
     content = renderShell()
+  } else if (recovering && session) {
+    content = <ResetPassword onDone={() => setRecovering(false)} />
   } else if (loading || member.status === 'loading') {
     content = <div className="screen">Loading...</div>
   } else if (!session) {
