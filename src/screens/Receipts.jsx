@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { loadSales, loadVoids } from '../features/sales/saleStore.js'
 import ReceiptView from '../features/sales/ReceiptView.jsx'
+import ShowMoreList from '../components/ShowMoreList.jsx'
 
 export default function Receipts() {
   const [q, setQ] = useState('')
@@ -26,7 +27,7 @@ export default function Receipts() {
         .toLowerCase()
       return hay.includes(t)
     })
-    .slice(0, 50)
+    .slice(0, 200)
 
   return (
     <div className="screen">
@@ -37,15 +38,19 @@ export default function Receipts() {
         onChange={e => setQ(e.target.value)}
       />
       {shown.length === 0 && <p>No receipts found.</p>}
-      {shown.map(s => (
-        <div key={s.id} className="row" onClick={() => setOpen(s)}>
-          <span>
-            <b>{s.trackingId || '#' + s.receiptNo}</b>
-            <div>{new Date(s.date).toLocaleString()} · {s.cashier}</div>
-          </span>
-          <span>₦{s.total.toLocaleString()}{voided.has(s.id) ? ' · VOID' : ''}</span>
-        </div>
-      ))}
+      <ShowMoreList
+        key={t}
+        items={shown}
+        render={s => (
+          <div key={s.id} className="row" onClick={() => setOpen(s)}>
+            <span>
+              <b>{s.trackingId || '#' + s.receiptNo}</b>
+              <div>{new Date(s.date).toLocaleString()} · {s.cashier}</div>
+            </span>
+            <span>₦{s.total.toLocaleString()}{voided.has(s.id) ? ' · VOID' : ''}</span>
+          </div>
+        )}
+      />
     </div>
   )
 }
