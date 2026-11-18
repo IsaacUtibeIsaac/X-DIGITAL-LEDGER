@@ -89,6 +89,8 @@ export function createSync(client, storage) {
   function wipeData() {
     COLLECTIONS.forEach(c => store.removeItem(c.key))
     store.removeItem('dl_tasks')
+    store.removeItem('dl_kyc')
+    store.removeItem('dl_kyc_docs')
     store.removeItem(FEE_QUEUE_KEY)
     store.removeItem(WALLET_KEY)
     store.removeItem(STATE_KEY)
