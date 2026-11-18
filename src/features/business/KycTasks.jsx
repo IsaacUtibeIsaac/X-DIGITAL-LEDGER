@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabaseReady } from '../../lib/supabase.js'
 import { SUPPORT_EMAIL, SUPPORT_PHONE } from '../../lib/support.js'
 import { loadBusiness, saveBusiness } from './businessStore.js'
 import { kycStatus, loadKyc, saveKyc, docMeta, saveDoc, submitKyc, markVerified } from './kycStore.js'
 import { prepareDocument } from './docUpload.js'
+import { cloudOn, pushStages, submitToCloud, pullStatus } from './kycCloud.js'
 
 const has = v => Boolean(v && String(v).trim())
 const now = () => new Date().toISOString()
@@ -43,7 +44,7 @@ function Rows({ rows }) {
   ))
 }
 
-export default function KycTasks() {
+export default function KycTasks({ businessId }) {
   const [tick, setTick] = useState(0)
   const refresh = () => setTick(t => t + 1)
 
@@ -62,6 +63,16 @@ export default function KycTasks() {
   })
   const [f2, setF2] = useState({ tin: k.tin, cacNumber: k.cacNumber })
 
+  // Check the review result when this screen opens, then once a minute
+  useEffect(() => {
+    if (!cloudOn(businessId)) return
+    let live = true
+    const check = () => pullStatus(businessId).then(changed => { if (live && changed) refresh() })
+    check()
+    const id = setInterval(check, 60000)
+    return () => { live = false; clearInterval(id) }
+  }, [businessId])
+
   const change1 = e => setF1({ ...f1, [e.target.name]: e.target.value })
   const change2 = e => setF2({ ...f2, [e.target.name]: e.target.value })
   const go = n => { setErr(''); setOpen(open === n ? 0 : n) }
@@ -79,6 +90,7 @@ export default function KycTasks() {
       hotline: f1.hotline.trim(), email: f1.email.trim()
     })
     saveKyc({ social: f1.social.trim(), s1At: loadKyc().s1At || now() })
+    pushStages(businessId)
     setErr(''); setEditing(0); setOpen(next); refresh()
   }
 
@@ -86,6 +98,7 @@ export default function KycTasks() {
     if (f2.tin.trim().length < 6) return setErr('Enter your TIN.')
     if (f2.cacNumber.trim().length < 5) return setErr('Enter your CAC registration number.')
     saveKyc({ tin: f2.tin.trim(), cacNumber: f2.cacNumber.trim(), s2At: loadKyc().s2At || now() })
+    pushStages(businessId)
     setErr(''); setEditing(0); setOpen(next); refresh()
   }
 
@@ -100,9 +113,19 @@ export default function KycTasks() {
     setBusy(false); refresh()
   }
 
-  function submit() {
+  async function submit() {
     if (!window.confirm('Send your documents for review? After this, changes go through customer support.')) return
-    submitKyc(); setOpen(0); refresh()
+    setErr(''); setBusy(true)
+    if (cloudOn(businessId)) {
+      const r = await submitToCloud(businessId)
+      if (!r.ok) {
+        setBusy(false)
+        setErr(r.error || 'Could not send. Check your internet and try again.')
+        return
+      }
+    }
+    submitKyc()
+    setBusy(false); setOpen(0); refresh()
   }
 
   function statusOf(n) {
@@ -152,6 +175,14 @@ export default function KycTasks() {
               : `${st.level} of 3 steps done. You can stop at any point and continue later. Nothing here stops you from selling.`}
         </p>
       </div>
+
+      {k.reviewNote && !st.s3 && (
+        <div style={{ margin: '8px 0', padding: 12, border: '1px solid #fca5a5', borderRadius: 12, background: '#fef2f2', color: '#7f1d1d' }}>
+          <b>Changes needed</b>
+          <p>{k.reviewNote}</p>
+          <p>Fix this below and submit again, or contact customer support.</p>
+        </div>
+      )}
 
       {st.verified && (
         <div className="kyc-verified">
@@ -246,7 +277,7 @@ export default function KycTasks() {
             {docSlot('tin', 'TIN certificate (Joint Tax Board)')}
             {err && open === 3 && <p className="auth-error">{err}</p>}
             <button type="button" className="big" disabled={!(docMeta('cac') && docMeta('tin')) || busy} onClick={submit}>
-              Submit for review
+              {busy ? 'Please wait...' : 'Submit for review'}
             </button>
           </>
         )}
