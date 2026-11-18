@@ -21,7 +21,8 @@ const navIcons = {
   Messages: '✉',
   Wallet: '₦',
   Security: '⛨',
-  'KYC Store': '✓',
+  Profile: '☻',
+  Services: '❖',
   XDL: '◈',
   RAI: '✦'
 }
