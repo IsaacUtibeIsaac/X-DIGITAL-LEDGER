@@ -6,28 +6,83 @@ import { loadCustomers } from '../customers/customerStore.js'
 import { loadSuppliers } from '../suppliers/supplierStore.js'
 
 const DAY = 86400000
+const KYC = 'dl_kyc'
+const DOCS = 'dl_kyc_docs'
 const has = v => Boolean(v && String(v).trim())
 
-// Slow KYC: level 1 is needed to start, level 2 builds the business record.
-// Level 3 (documents checked by Digital Ledger staff) needs cloud accounts.
-export function kycStatus(b) {
-  const phoneOk = /^\+\d{7,15}$/.test((b.ownerPhone || '').replace(/[\s-]/g, ''))
+// KYC 1 = business details, KYC 2 = TIN and CAC number, KYC 3 = documents sent for review.
+// Business name, address, hotline and email live in businessStore (receipts use them).
+const blankKyc = { social: '', tin: '', cacNumber: '', s1At: '', s2At: '', s3At: '', verifiedAt: '' }
+
+export function loadKyc() {
+  try {
+    return { ...blankKyc, ...(JSON.parse(localStorage.getItem(KYC)) || {}) }
+  } catch {
+    return { ...blankKyc }
+  }
+}
+
+export function saveKyc(patch) {
+  const next = { ...loadKyc(), ...patch }
+  try { localStorage.setItem(KYC, JSON.stringify(next)) } catch {}
+  return next
+}
+
+function readDocs() {
+  try { return JSON.parse(localStorage.getItem(DOCS)) || {} } catch { return {} }
+}
+
+// Returns false if the phone has no room left.
+export function saveDoc(kind, doc) {
+  const docs = readDocs()
+  docs[kind] = doc
+  try {
+    localStorage.setItem(DOCS, JSON.stringify(docs))
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Only says whether a document is there. The image itself is never handed to the screen.
+export function docMeta(kind) {
+  const d = readDocs()[kind]
+  return d ? { name: d.name, at: d.at } : null
+}
+
+export function submitKyc() {
+  return saveKyc({ s3At: new Date().toISOString() })
+}
+
+// Test mode only. Later, Digital Ledger staff will set this from XDL-Management.
+export function markVerified() {
+  return saveKyc({ verifiedAt: new Date().toISOString() })
+}
+
+export function kycStatus(b = loadBusiness(), k = loadKyc()) {
   const l1Missing = []
-  if (!has(b.ownerName)) l1Missing.push('Owner full name')
-  if (!phoneOk) l1Missing.push('Owner phone with country code (for example +234...)')
   if (!has(b.name)) l1Missing.push('Business name')
+  if (!has(b.address)) l1Missing.push('Business address')
+  if (!has(b.hotline)) l1Missing.push('Hotline')
+  if (!has(b.email) && !has(k.social)) l1Missing.push('Email or a social media page')
   const l2Missing = []
-  if (!has(b.cac)) l2Missing.push('CAC number')
-  if (!has(b.address)) l2Missing.push('Shop address')
-  if (!has(b.state)) l2Missing.push('State')
-  if (!has(b.businessType)) l2Missing.push('Business type')
-  const level = l1Missing.length ? 0 : l2Missing.length ? 1 : 2
-  return { level, l1Missing, l2Missing }
+  if (!has(k.tin)) l2Missing.push('TIN')
+  if (!has(k.cacNumber)) l2Missing.push('CAC registration number')
+  const docs = { cac: Boolean(docMeta('cac')), tin: Boolean(docMeta('tin')) }
+
+  const s1 = Boolean(k.s1At) && l1Missing.length === 0
+  const s2 = s1 && Boolean(k.s2At) && l2Missing.length === 0
+  const s3 = s2 && Boolean(k.s3At) && docs.cac && docs.tin
+  const verified = s3 && Boolean(k.verifiedAt)
+  const level = s3 ? 3 : s2 ? 2 : s1 ? 1 : 0
+  const state = verified ? 'verified' : s3 ? 'review' : 'progress'
+  return { level, state, s1, s2, s3, verified, l1Missing, l2Missing, docs }
 }
 
 export function accountSummary() {
   const business = loadBusiness()
-  const kyc = kycStatus(business)
+  const k = loadKyc()
+  const kyc = kycStatus(business, k)
   const voided = new Set(loadVoids().map(v => v.saleId))
   const valid = loadSales().filter(s => !voided.has(s.id))
   const items = loadProducts()
@@ -45,8 +100,10 @@ export function accountSummary() {
 
   const stages = [
     { label: 'Registered', done: Boolean(business.createdAt), at: business.createdAt },
-    { label: 'Basic details complete (KYC level 1)', done: kyc.level >= 1 },
-    { label: 'Business details complete (KYC level 2)', done: kyc.level >= 2 },
+    { label: 'KYC 1: business details saved', done: kyc.s1, at: k.s1At },
+    { label: 'KYC 2: TIN and CAC number saved', done: kyc.s2, at: k.s2At },
+    { label: 'KYC 3: documents sent for review', done: kyc.s3, at: k.s3At },
+    { label: 'Verified', done: kyc.verified, at: k.verifiedAt },
     { label: 'Inventory set up', done: items.length > 0, at: firstItem },
     { label: 'First sale recorded', done: firstSale !== null, at: firstSale },
     { label: 'Active (sales on 4 of the last 7 days)', done: activeDays.size >= 4 }
